@@ -254,9 +254,3 @@ in Wokwi. The reproducible checklist is in
 - Record the complete FT-01 through FT-10 Wokwi observations.
 - Add a finished-system screenshot to the repository’s documentation assets.
 - Expand the native tests as new hardware-independent decisions are added.
-
-## References and Acknowledgments
-
-This project follows the BCA182 Laboratory Activity No. 1 requirements and
-uses the PlatformIO FreeRTOS kernel integration with STM32Cube. The design
-decisions and milestone history are recorded in the `docs/` directory.
