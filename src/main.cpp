@@ -5,6 +5,7 @@
 #include "sensors.h"
 #include "display.h"
 #include "input.h"
+#include "alarm.h"
 #include "ssd1306.h"
 #include "wokwi_i2c.h"
 #include <stdio.h>
@@ -147,24 +148,6 @@ extern "C" void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 }
 
 /* ---------------------------------------------------------
- * TEMPORARY: proves the alarm-side queue carries data.
- * AlarmTask (Part VIII) replaces this. Delete once AlarmTask exists.
- * --------------------------------------------------------- */
-static void AlarmQueueMonitorTask(void *pvParameters)
-{
-    (void)pvParameters;
-    SensorData reading;
-
-    for (;;) {
-        if (xQueueReceive(xQueueSensorToAlarm, &reading, portMAX_DELAY) == pdPASS) {
-            printf("[alarm-queue] T=%.2fC H=%.2f%% L=%d%% motion=%d\r\n",
-                   reading.temperature, reading.humidity,
-                   reading.lightLevel, (int)reading.motionDetected);
-        }
-    }
-}
-
-/* ---------------------------------------------------------
  * FreeRTOS Required Callback Hooks
  * --------------------------------------------------------- */
 extern "C" {
@@ -200,6 +183,7 @@ int main(void)
     MX_GPIO_Init();
     MX_ADC1_Init();
     MX_USART1_UART_Init();
+    alarm_init();
 
     printf("BCA182 FreeRTOS Multisensor\r\n");
     printf("System starting...\r\n");
@@ -224,7 +208,7 @@ int main(void)
     xTaskCreate(vSensorTask,          "SensorTask",  256, NULL, 2, NULL);
     xTaskCreate(vDisplayTask,         "DisplayTask", 256, NULL, 1, NULL);
     xTaskCreate(vInputTask,           "InputTask",   256, NULL, 3, NULL);
-    xTaskCreate(AlarmQueueMonitorTask,"AlarmQMon",   256, NULL, 1, NULL); /* temporary */
+    xTaskCreate(vAlarmTask,           "AlarmTask",   256, NULL, 2, NULL);
 
     vTaskStartScheduler();
 

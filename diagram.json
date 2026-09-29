@@ -37,6 +37,13 @@
       "top": 440,
       "left": 180,
       "attrs": {}
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "buzzer1",
+      "top": 560,
+      "left": 180,
+      "attrs": {}
     }
   ],
   "connections": [
@@ -60,6 +67,9 @@
     [ "encoder1:GND", "bluepill:GND.1", "black", [ "v0" ] ],
     [ "encoder1:CLK", "bluepill:A3", "green", [ "v0" ] ],
     [ "encoder1:DT", "bluepill:A4", "green", [ "v0" ] ],
-    [ "encoder1:SW", "bluepill:A5", "green", [ "v0" ] ]
+    [ "encoder1:SW", "bluepill:A5", "green", [ "v0" ] ],
+
+    [ "buzzer1:1", "bluepill:GND.1", "black", [ "v0" ] ],
+    [ "buzzer1:2", "bluepill:A8", "red", [ "v0" ] ]
   ]
 }
