@@ -19,9 +19,11 @@
  * for a task that is otherwise only doing OLED/buzzer work.
  */
 #define SENSOR_QUEUE_LENGTH   5
+#define DISPLAY_MODE_QUEUE_LENGTH 4
 
 extern QueueHandle_t xQueueSensorToDisplay;
 extern QueueHandle_t xQueueSensorToAlarm;
+extern QueueHandle_t xQueueInputToDisplay;
 
 // Initialize shared FreeRTOS queues/semaphores
 void initRTOSObjects(void);

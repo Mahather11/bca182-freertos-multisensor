@@ -5,9 +5,8 @@
 #include "task.h"
 
 /* DisplayTask: the ONLY task that touches the OLED (Section 26).
- * Consumes xQueueSensorToDisplay (Part V) and renders the current
- * temperature reading. Mode switching (Temperature/Humidity/Light/
- * Motion) is added in Part VII. */
+ * Consumes sensor readings and display-mode selections while remaining
+ * the only task that writes to the OLED. */
 void vDisplayTask(void *pvParameters);
 
 #endif // DISPLAY_H

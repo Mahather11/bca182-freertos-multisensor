@@ -4,6 +4,7 @@
 #include "rtos_objects.h"
 #include "sensors.h"
 #include "display.h"
+#include "input.h"
 #include "ssd1306.h"
 #include "wokwi_i2c.h"
 #include <stdio.h>
@@ -84,6 +85,13 @@ extern "C" void MX_GPIO_Init(void)
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
+
+    GPIO_InitTypeDef encoderPins = {0};
+    encoderPins.Pin = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5;
+    encoderPins.Mode = GPIO_MODE_INPUT;
+    encoderPins.Pull = GPIO_PULLUP;
+    encoderPins.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOA, &encoderPins);
 }
 
 extern "C" void MX_ADC1_Init(void)
@@ -215,6 +223,7 @@ int main(void)
     /* Priorities per Section 38's suggested table. */
     xTaskCreate(vSensorTask,          "SensorTask",  256, NULL, 2, NULL);
     xTaskCreate(vDisplayTask,         "DisplayTask", 256, NULL, 1, NULL);
+    xTaskCreate(vInputTask,           "InputTask",   256, NULL, 3, NULL);
     xTaskCreate(AlarmQueueMonitorTask,"AlarmQMon",   256, NULL, 1, NULL); /* temporary */
 
     vTaskStartScheduler();

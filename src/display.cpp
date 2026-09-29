@@ -2,6 +2,7 @@
 #include "ssd1306.h"
 #include "rtos_objects.h"
 #include "sensors.h"
+#include "input.h"
 #include <stdio.h>
 
 /* Formats one decimal place using integer arithmetic only, to avoid
@@ -22,9 +23,15 @@ void vDisplayTask(void *pvParameters)
 
     SensorData reading = {0};
     bool haveReading = false;
+    DisplayMode mode = DisplayMode::TEMPERATURE;
     char line[21];
 
     for (;;) {
+        DisplayMode queuedMode;
+        while (xQueueReceive(xQueueInputToDisplay, &queuedMode, 0) == pdPASS) {
+            mode = queuedMode;
+        }
+
         /* Block waiting for the next sensor reading; on timeout, keep
          * showing the last known value (or "--" if none has arrived yet). */
         if (xQueueReceive(xQueueSensorToDisplay, &reading, pdMS_TO_TICKS(2500)) == pdPASS) {
@@ -37,36 +44,37 @@ void vDisplayTask(void *pvParameters)
         SSD1306_WriteString("ROOM MONITOR");
 
         SSD1306_SetCursor(2, 0);
-        SSD1306_WriteString("TEMP:");
-
-        SSD1306_SetCursor(2, 6);
-        if (haveReading) {
-            formatOneDecimal(reading.temperature, line, sizeof(line), "C");
+        if (mode == DisplayMode::TEMPERATURE) {
+            SSD1306_WriteString("TEMPERATURE");
+            SSD1306_SetCursor(4, 0);
+            if (haveReading) {
+                formatOneDecimal(reading.temperature, line, sizeof(line), "C");
+            } else {
+                snprintf(line, sizeof(line), "-- C");
+            }
+        } else if (mode == DisplayMode::HUMIDITY) {
+            SSD1306_WriteString("HUMIDITY");
+            SSD1306_SetCursor(4, 0);
+            if (haveReading) {
+                formatOneDecimal(reading.humidity, line, sizeof(line), "%");
+            } else {
+                snprintf(line, sizeof(line), "-- %%");
+            }
+        } else if (mode == DisplayMode::LIGHT) {
+            SSD1306_WriteString("LIGHT");
+            SSD1306_SetCursor(4, 0);
+            if (haveReading) {
+                snprintf(line, sizeof(line), "%d %%", reading.lightLevel);
+            } else {
+                snprintf(line, sizeof(line), "-- %%");
+            }
         } else {
-            snprintf(line, sizeof(line), "-- C");
+            SSD1306_WriteString("MOTION");
+            SSD1306_SetCursor(4, 0);
+            SSD1306_WriteString(haveReading && reading.motionDetected ? "DETECTED" : "CLEAR");
+            line[0] = '\0';
         }
         SSD1306_WriteString(line);
-
-        SSD1306_SetCursor(4, 0);
-        SSD1306_WriteString("HUM:");
-        SSD1306_SetCursor(4, 6);
-        if (haveReading) {
-            formatOneDecimal(reading.humidity, line, sizeof(line), "%");
-        } else {
-            snprintf(line, sizeof(line), "-- %%");
-        }
-        SSD1306_WriteString(line);
-
-        SSD1306_SetCursor(6, 0);
-        if (haveReading) {
-            snprintf(line, sizeof(line), "LIGHT:%3d%%", reading.lightLevel);
-        } else {
-            snprintf(line, sizeof(line), "LIGHT:--%%");
-        }
-        SSD1306_WriteString(line);
-
-        SSD1306_SetCursor(7, 0);
-        SSD1306_WriteString(haveReading && reading.motionDetected ? "MOTION:ON" : "MOTION:OFF");
 
         SSD1306_UpdateScreen();
     }
