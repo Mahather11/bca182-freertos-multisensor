@@ -30,6 +30,7 @@ extern QueueHandle_t xQueueSensorToDisplay;
 extern QueueHandle_t xQueueSensorToAlarm;
 extern QueueHandle_t xQueueInputToDisplay;
 extern EventGroupHandle_t xSystemEvents;
+extern SemaphoreHandle_t serialMutex;
 
 // Initialize shared FreeRTOS queues/semaphores
 void initRTOSObjects(void);

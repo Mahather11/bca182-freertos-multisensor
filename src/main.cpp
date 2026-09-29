@@ -27,7 +27,17 @@ static void MX_USART1_UART_Init(void);
 extern "C" int _write(int fd, char *ptr, int len)
 {
     (void)fd;
+
+    bool schedulerRunning = xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED;
+    if (schedulerRunning && serialMutex != NULL) {
+        xSemaphoreTake(serialMutex, portMAX_DELAY);
+    }
+
     HAL_UART_Transmit(&huart1, (uint8_t *)ptr, (uint16_t)len, HAL_MAX_DELAY);
+
+    if (schedulerRunning && serialMutex != NULL) {
+        xSemaphoreGive(serialMutex);
+    }
     return len;
 }
 
