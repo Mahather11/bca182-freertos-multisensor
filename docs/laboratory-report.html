@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>BCA182 Laboratory Activity 1 - Laboratory Report</title>
+<style>
+@page { size: A4; margin: 22mm 20mm 20mm 20mm; }
+body { font-family: Calibri, Arial, sans-serif; font-size: 10.5pt; line-height: 1.35; color: #20252b; }
+h1 { font-size: 23pt; color: #17365d; margin: 0 0 8pt; }
+h2 { font-size: 15pt; color: #17365d; border-bottom: 1px solid #9eafc2; padding-bottom: 4pt; margin-top: 21pt; }
+h3 { font-size: 11.5pt; color: #28527a; margin: 14pt 0 4pt; }
+p { margin: 5pt 0 8pt; }
+.cover { text-align: center; margin-top: 80pt; page-break-after: always; }
+.cover h1 { font-size: 25pt; }
+.subtitle { font-size: 16pt; color: #345; margin: 12pt 0 36pt; }
+.coverline { margin: 15pt 0; }
+.note { background: #eef4fa; border-left: 4px solid #4276a5; padding: 8pt 10pt; }
+.warning { background: #fff4e5; border-left: 4px solid #c27b19; padding: 8pt 10pt; }
+table { width: 100%; border-collapse: collapse; margin: 7pt 0 12pt; font-size: 9pt; }
+th { background: #d9e7f3; text-align: left; }
+th, td { border: 1px solid #8898a8; padding: 5pt 6pt; vertical-align: top; }
+pre { font-family: Consolas, monospace; font-size: 8.5pt; white-space: pre-wrap; background: #f3f5f7; padding: 8pt; }
+ul, ol { margin-top: 3pt; }
+li { margin: 2pt 0; }
+.small { font-size: 9pt; color: #49545e; }
+.pagebreak { page-break-before: always; }
+</style>
+</head>
+<body>
+<section class="cover">
+<p>Mindanao State University - Iligan Institute of Technology</p>
+<p>College of Computer Studies | Department of Computer Applications</p>
+<p>BCA182 Embedded Systems Programming</p>
+<h1>Laboratory Activity No. 1</h1>
+<p class="subtitle">Real-Time Multisensor Room Monitoring System</p>
+<p><strong>Technical Laboratory Report</strong></p>
+<p class="coverline">Student: ______________________________________________</p>
+<p class="coverline">Subject / Section: _____________________________________</p>
+<p class="coverline">Submission date: 29 September 2026</p>
+<p class="small">PlatformIO | STM32Cube | STM32F103C8 Blue Pill | FreeRTOS | Wokwi</p>
+</section>
+
+<h2>1. Problem and Requirements</h2>
+<p>The goal of this laboratory was to build a simulated room monitor on an STM32 Blue Pill. The device is intended to sample temperature, humidity, and relative light; detect motion; show one selected measurement on an OLED; sound an alarm outside the normal temperature range; and enter an inactive state after a period without motion.</p>
+<p>The required temperature limits are 18 C and 30 C. The decision logic treats both endpoints as normal: an alarm is low only below 18 C and high only above 30 C. The implementation uses the STM32Cube framework and native FreeRTOS APIs; it does not use the Arduino framework.</p>
+<p>Wokwi adapts the physical system into a virtual Blue Pill circuit with a DHT22, photoresistor module, PIR sensor, KY-040 encoder, SSD1306 OLED, and buzzer. The LDR output is expressed as a relative percentage, not calibrated lux.</p>
+<div class="warning"><strong>Implementation boundary:</strong> the DHT22 is wired in the Wokwi diagram, but the current sensor code does not communicate with it. It supplies fixed placeholder readings of 25.4 C and 61.2% RH. This report distinguishes those placeholders from real sensor acquisition.</div>
+
+<h2>2. System Architecture and Design</h2>
+<h3>Hardware architecture</h3>
+<table>
+<tr><th>Device</th><th>Pin / interface</th><th>Role</th></tr>
+<tr><td>STM32F103C8 Blue Pill</td><td>MCU; internal HSI clock configured at 8 MHz</td><td>Runs application tasks and FreeRTOS</td></tr>
+<tr><td>Photoresistor module</td><td>PA0, ADC1 channel 0</td><td>Relative ambient light input</td></tr>
+<tr><td>DHT22</td><td>PA1 in the circuit</td><td>Intended temperature and humidity input; currently not read by firmware</td></tr>
+<tr><td>PIR sensor</td><td>PA2</td><td>Motion input</td></tr>
+<tr><td>KY-040 encoder</td><td>PA3 CLK, PA4 DT, PA5 switch</td><td>Rotary page selection; firmware samples CLK and DT, but does not read the switch</td></tr>
+<tr><td>SSD1306 OLED</td><td>PB6 SCL, PB7 SDA, I2C address 0x3C</td><td>Displays the selected page</td></tr>
+<tr><td>Buzzer</td><td>PA8, TIM1 channel 1 PWM</td><td>Temperature alarm output</td></tr>
+<tr><td>Serial monitor</td><td>PA9 TX, PA10 RX, USART1 at 115200 baud</td><td>Startup and task diagnostics</td></tr>
+</table>
+<p>The MCU clock setup selects the internal 8 MHz HSI without a PLL. The HAL millisecond tick uses TIM4 because the FreeRTOS port owns SysTick. The OLED transport is a project-local bit-banged I2C implementation on PB6/PB7. The buzzer is configured for a nominal 1 kHz PWM signal.</p>
+
+<h3>Software architecture</h3>
+<p>The application is split across sensor, display, input, alarm, motion, system-state, and RTOS-object modules. The pure decision functions for temperature alarms, encoder navigation, and system-state transitions are separated from peripheral access so they can be compiled for native tests.</p>
+<pre>SensorTask --+--> display sensor queue --> DisplayTask --> SSD1306
+             +--> alarm sensor queue   --> AlarmTask   --> buzzer
+InputTask ------> display-mode queue   --> DisplayTask
+MotionTask -----> EVENT_MOTION --------> StateTask
+StateTask ------> EVENT_ACTIVE --------> other tasks
+All task diagnostics ------------------> USART1, guarded by serialMutex</pre>
+<p>DisplayTask is the sole runtime owner of the OLED. SensorTask publishes each sensor record to separate display and alarm queues because a queue receive consumes the item. The event group represents ACTIVE, MOTION, and ALARM status. The serial mutex protects the shared USART1 transmit path.</p>
+
+<h3>State machine</h3>
+<pre>Boot -> ACTIVE
+ACTIVE -- 15 seconds without motion --> INACTIVE
+INACTIVE -- motion detected ----------> ACTIVE</pre>
+<p>The system starts ACTIVE. StateTask owns EVENT_ACTIVE and applies the 15-second inactivity rule. MotionTask continues sampling the PIR while inactive so activity can wake the system. SensorTask skips acquisition while inactive; InputTask continues polling but suppresses mode changes; DisplayTask blanks the display when it next checks the state; AlarmTask suppresses the buzzer while inactive.</p>
+
+<h2>3. FreeRTOS Architecture</h2>
+<p>All six application tasks are created in main.cpp with explicit priorities. Periodic input, motion, and sensor work uses vTaskDelayUntil() so execution remains aligned to a fixed period instead of accumulating a delay after each task body. Queue and event-group waits place tasks in the Blocked state until their data, event, or timeout is ready.</p>
+<table>
+<tr><th>Task</th><th>Responsibility</th><th>Trigger / period</th><th>Priority</th><th>IPC</th><th>Typical blocked condition</th></tr>
+<tr><td>SensorTask</td><td>Read LDR and current temperature/humidity values; publish SensorData to two consumer queues</td><td>2 s, vTaskDelayUntil()</td><td>2</td><td>Two sensor queues; reads EVENT_ACTIVE and EVENT_MOTION</td><td>Periodic delay; queue send can wait up to 50 ms</td></tr>
+<tr><td>DisplayTask</td><td>Render the selected measurement; sole OLED owner</td><td>Sensor update or queue timeout</td><td>1</td><td>Sensor queue and mode queue</td><td>Waits up to 2.5 s for a sensor queue item</td></tr>
+<tr><td>InputTask</td><td>Decode encoder CLK/DT and select a display page while ACTIVE</td><td>5 ms, vTaskDelayUntil()</td><td>3</td><td>Display-mode queue; reads EVENT_ACTIVE</td><td>5 ms periodic delay</td></tr>
+<tr><td>MotionTask</td><td>Sample the PIR and mirror its level to EVENT_MOTION</td><td>100 ms, vTaskDelayUntil()</td><td>3</td><td>System event group</td><td>100 ms periodic delay</td></tr>
+<tr><td>AlarmTask</td><td>Evaluate temperature, drive buzzer PWM, publish EVENT_ALARM</td><td>Sensor data; 500 ms queue timeout</td><td>2</td><td>Alarm sensor queue and system event group</td><td>Waits up to 500 ms for sensor data</td></tr>
+<tr><td>StateTask</td><td>Apply ACTIVE/INACTIVE transitions and inactivity timeout</td><td>Motion event or 15 s timeout</td><td>2</td><td>Waits on EVENT_MOTION; owns EVENT_ACTIVE</td><td>Event wait; 500 ms delay after detecting asserted motion</td></tr>
+</table>
+<p>The priorities reflect latency requirements. Encoder and PIR inputs use priority 3 because their signals can change on a short timescale. Sensor, alarm, and state processing use priority 2. OLED updates use priority 1 because small display delays are acceptable and a slow display operation should not outrank input or sampling work.</p>
+<p>In FreeRTOS, a task that is eligible to run but waiting for the CPU is Ready; a task waiting for a delay, queue item, or event is Blocked. The periodic tasks return to Blocked after finite work. The implementation uses dynamically created tasks and RTOS objects from the configured FreeRTOS heap.</p>
+
+<h2>4. Implementation</h2>
+<p>SensorData contains temperature, humidity, lightLevel, and motionDetected fields. The current DHT22 function assigns constants; the LDR is sampled through ADC1 and scaled to an integer from 0 to 100. This scale is relative brightness and must not be presented as lux.</p>
+<p>DisplayMode is an enumeration with TEMPERATURE, HUMIDITY, LIGHT, and MOTION values. InputTask decodes a falling edge on encoder CLK and compares DT to choose forward or reverse navigation. It posts the new mode to a queue; DisplayTask performs the OLED update. The encoder switch input is configured on PA5 but is not currently processed.</p>
+<p>Temperature evaluation is hardware-independent. Values less than 18 C map to LOW_TEMPERATURE, values greater than 30 C map to HIGH_TEMPERATURE, and all values from 18 C through 30 C map to NORMAL. AlarmTask drives TIM1 channel 1 PWM on PA8 when the system is ACTIVE and the temperature is out of range.</p>
+<p>The UART mutex is taken in the _write() retarget around each HAL_UART_Transmit() call once the scheduler has started. Startup output is emitted before scheduler operation. The mutex protects access to the peripheral transmit path; it does not wrap an entire printf call as one indivisible record.</p>
+
+<h2>5. Verification and Testing</h2>
+<h3>Build and unit tests</h3>
+<table>
+<tr><th>Verification</th><th>Recorded result</th><th>Scope / caveat</th></tr>
+<tr><td>pio run</td><td>PASS; last recorded build used 50.2% RAM and 50.4% flash</td><td>Firmware compiles and links for bluepill_f103c8</td></tr>
+<tr><td>pio test -e native</td><td>13 tests passed</td><td>Five alarm, four navigation, and four state-logic cases; not peripheral or task integration tests</td></tr>
+<tr><td>pio check -e bluepill_f103c8</td><td>PASS; 0 high, 0 medium, 10 low findings</td><td>Remaining low findings are documented in docs/static-analysis.md</td></tr>
+<tr><td>pio check -e native</td><td>PASS; no defects reported</td><td>Checks only hardware-independent *_logic.cpp files</td></tr>
+</table>
+
+<h3>Wokwi observations</h3>
+<p>The user-supplied Wokwi screenshot shows the OLED on the HUMIDITY page and a live serial terminal with sample lines showing 25.40 C, 61.25% humidity, 15% light, and no motion. This is useful evidence that a simulation was running, but it does not establish all FT-01 through FT-10 tests.</p>
+<div class="warning"><strong>Evidence discrepancy:</strong> the current source assigns humidity 61.2f and formats serial output to two decimal places, which should display 61.20%. The supplied screenshot shows 61.25%. The screenshot may come from another or earlier firmware state. It is therefore recorded as an observed screenshot, not as a verified output of the current checked source.</div>
+<table>
+<tr><th>Test</th><th>Required stimulus</th><th>Current record</th></tr>
+<tr><td>FT-01 / FT-02</td><td>Change DHT22 temperature and humidity; confirm the OLED and terminal update</td><td>Not verified against current source; DHT22 values are constants</td></tr>
+<tr><td>FT-03</td><td>Move the LDR from dark to bright and confirm percentage direction</td><td>Screenshot shows 15%; dark/bright comparison not recorded</td></tr>
+<tr><td>FT-04 to FT-06</td><td>Trigger PIR and navigate OLED pages in both directions</td><td>Not recorded as a complete test sequence</td></tr>
+<tr><td>FT-07</td><td>Exercise both alarm limits and normal return</td><td>Logic boundaries covered in unit tests; interactive buzzer verification pending</td></tr>
+<tr><td>FT-08 to FT-10</td><td>Observe inactivity, 15 s timeout, and motion wake-up</td><td>Interactive observations pending</td></tr>
+</table>
+<p>No Wokwi run has been independently reproduced for this report. The repository checklist in docs/functional-verification.md leaves these runtime tests pending until each stimulus is performed and its actual result recorded.</p>
+
+<h2>6. Static Code Analysis</h2>
+<p>PlatformIO cppcheck was run for the firmware and native environments. The firmware environment reported no high- or medium-severity findings and ten low-severity findings. The native logic-only analysis reported no defects. The firmware findings are stylistic and related to STM32 CMSIS/HAL register macros and the required HAL callback signature; details and the accepted resolutions are recorded in docs/static-analysis.md.</p>
+<p>The native check intentionally excludes STM32-only sources such as the custom port. Its clean result therefore applies to the hardware-independent decision logic, not the complete firmware source set. PlatformIO also emitted nonfatal toolchain-define extraction warnings during the native check.</p>
+
+<h2>7. Engineering Discussion</h2>
+<p>The main architectural trade-off is separating sensor fan-out into two queues. This avoids a race in which DisplayTask and AlarmTask compete to consume the same queue item, at the cost of publishing the same record twice. The event group is used for shared state flags because several tasks need to read current ACTIVE and MOTION levels. The UART uses a mutex because several task contexts emit diagnostics.</p>
+<p>The display task waits up to 2.5 seconds on its sensor queue before checking system activity and redrawing. As a result, a mode change or inactive transition may not be reflected immediately. InputTask continues polling while inactive but discards mode changes. The PA5 encoder switch is not consumed. These behaviors are known limitations, not verified feature claims.</p>
+<p>The project uses a custom FreeRTOS Cortex-M3 port selected for Wokwi simulator behavior. This is a simulator-specific engineering choice; physical hardware testing has not been documented. The most important current functional limitation is the unimplemented DHT22 protocol, which prevents real temperature/humidity updates and meaningful simulated temperature alarm changes.</p>
+
+<h2>8. Conclusion</h2>
+<p>The project establishes a modular, concurrent STM32 FreeRTOS application with six distinct tasks, queues, an event group, a serial mutex, an OLED display path, PIR-based state logic, and independently testable alarm/navigation/state decisions. The recorded firmware build and 13 native logic tests pass.</p>
+<p>The work is not yet a complete functional demonstration of every laboratory requirement. The DHT22 driver is still a placeholder, and the full FT-01 through FT-10 Wokwi verification record remains incomplete. The next engineering steps are to implement real DHT22 acquisition, correct or reconcile the screenshot/source humidity discrepancy, and record each interactive Wokwi test from the current firmware.</p>
+
+<h2>References</h2>
+<ul>
+<li>BCA182 Embedded Systems Programming, Laboratory Activity No. 1: Real-Time Multisensor Room Monitoring System, September 2026.</li>
+<li>FreeRTOS Kernel API and STM32Cube HAL APIs used by the project.</li>
+<li>Project implementation and verification records in the repository include/, src/, test/, and docs/ directories.</li>
+</ul>
+<p class="small">Prepared from the current project source and recorded repository evidence on 29 September 2026. Unperformed tests are identified as pending; no friend-repository test outcomes are claimed as this project's results.</p>
+</body>
+</html>
