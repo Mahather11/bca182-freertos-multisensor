@@ -1,5 +1,13 @@
 #include "rtos_objects.h"
+#include "sensors.h"   // SensorData
+
+QueueHandle_t xQueueSensorToDisplay = NULL;
+QueueHandle_t xQueueSensorToAlarm   = NULL;
 
 void initRTOSObjects(void) {
-    // Shared handles initialized here in upcoming parts (Part V: queue)
+    xQueueSensorToDisplay = xQueueCreate(SENSOR_QUEUE_LENGTH, sizeof(SensorData));
+    xQueueSensorToAlarm   = xQueueCreate(SENSOR_QUEUE_LENGTH, sizeof(SensorData));
+
+    configASSERT(xQueueSensorToDisplay != NULL);
+    configASSERT(xQueueSensorToAlarm   != NULL);
 }

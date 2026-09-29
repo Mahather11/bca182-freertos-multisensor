@@ -12,8 +12,7 @@ extern "C" uint32_t g_pfnVectors[];
 static void MX_USART1_UART_Init(void);
 
 /* ---------------------------------------------------------
- * Retarget printf() to USART1. Without this, printf() has
- * nowhere to send its output and nothing appears.
+ * Retarget printf() to USART1.
  * --------------------------------------------------------- */
 extern "C" int _write(int fd, char *ptr, int len)
 {
@@ -50,8 +49,6 @@ extern "C" void TIM4_IRQHandler(void)
 
 /* ---------------------------------------------------------
  * System Clock Configuration: HSI 8 MHz, no PLL.
- * Must match configCPU_CLOCK_HZ (8000000UL) in FreeRTOSConfig.h
- * and the TIM4 PSC/ARR values above.
  * --------------------------------------------------------- */
 extern "C" void SystemClock_Config(void)
 {
@@ -136,6 +133,31 @@ extern "C" void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 }
 
 /* ---------------------------------------------------------
+ * TEMPORARY: proves the two sensor queues actually carry data.
+ * DisplayTask (Part VI) replaces the display-queue consumer below;
+ * AlarmTask (Part VIII) replaces the alarm-queue consumer. Delete
+ * this whole task once both real consumers exist.
+ * --------------------------------------------------------- */
+static void QueueMonitorTask(void *pvParameters)
+{
+    (void)pvParameters;
+    SensorData reading;
+
+    for (;;) {
+        if (xQueueReceive(xQueueSensorToDisplay, &reading, pdMS_TO_TICKS(2500)) == pdPASS) {
+            printf("[display-queue] T=%.2fC H=%.2f%% L=%d%% motion=%d\r\n",
+                   reading.temperature, reading.humidity,
+                   reading.lightLevel, (int)reading.motionDetected);
+        }
+        if (xQueueReceive(xQueueSensorToAlarm, &reading, pdMS_TO_TICKS(2500)) == pdPASS) {
+            printf("[alarm-queue]   T=%.2fC H=%.2f%% L=%d%% motion=%d\r\n",
+                   reading.temperature, reading.humidity,
+                   reading.lightLevel, (int)reading.motionDetected);
+        }
+    }
+}
+
+/* ---------------------------------------------------------
  * FreeRTOS Required Callback Hooks
  * --------------------------------------------------------- */
 extern "C" {
@@ -172,6 +194,8 @@ int main(void)
     MX_ADC1_Init();
     MX_USART1_UART_Init();
 
+    /* FreeRTOS object creation happens before any task that uses them
+     * (Section 41: hardware init -> RTOS objects -> task creation). */
     initRTOSObjects();
 
     printf("BCA182 FreeRTOS Multisensor\r\n");
@@ -179,6 +203,10 @@ int main(void)
 
     /* SensorTask, priority 2 per the lab's task table (Section 38) */
     xTaskCreate(vSensorTask, "SensorTask", 256, NULL, 2, NULL);
+
+    /* Temporary, priority 1: just proves the queues work. Remove once
+     * DisplayTask/AlarmTask exist. */
+    xTaskCreate(QueueMonitorTask, "QueueMonitor", 256, NULL, 1, NULL);
 
     vTaskStartScheduler();
 
