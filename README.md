@@ -222,7 +222,8 @@ the inactivity timeout, and reactivation. The supplied Wokwi screenshot shows
 the Humidity page and terminal samples such as 25.40 C, 61.25% humidity, and
 15% light with no motion.
 
-![Wokwi functional verification showing the Humidity page and serial samples](docs/screenshots/functional-verification.png)
+<img width="1172" height="888" alt="image" src="https://github.com/user-attachments/assets/50eabcc7-6119-48a9-91a3-1b897f1e9093" />
+)
 
 Runtime observations should be recorded only after performing each interaction
 in Wokwi. The reproducible checklist is in
