@@ -25,6 +25,13 @@
       "attrs": {}
     },
     {
+      "type": "wokwi-pir-motion-sensor",
+      "id": "pir1",
+      "top": 220,
+      "left": 180,
+      "attrs": {}
+    },
+    {
       "type": "board-ssd1306",
       "id": "oled1",
       "top": 280,
@@ -57,6 +64,10 @@
     [ "ldr1:VCC", "bluepill:3V3.1", "red", [ "v0" ] ],
     [ "ldr1:GND", "bluepill:GND.1", "black", [ "v0" ] ],
     [ "ldr1:AO", "bluepill:A0", "orange", [ "v0" ] ],
+
+    [ "pir1:VCC", "bluepill:3V3.1", "red", [ "v0" ] ],
+    [ "pir1:GND", "bluepill:GND.1", "black", [ "v0" ] ],
+    [ "pir1:OUT", "bluepill:A2", "purple", [ "v0" ] ],
 
     [ "oled1:GND", "bluepill:GND.1", "black", [ "v0" ] ],
     [ "oled1:VCC", "bluepill:3V3.1", "red", [ "v0" ] ],

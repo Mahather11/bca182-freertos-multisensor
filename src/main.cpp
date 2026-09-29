@@ -6,6 +6,7 @@
 #include "display.h"
 #include "input.h"
 #include "alarm.h"
+#include "motion.h"
 #include "ssd1306.h"
 #include "wokwi_i2c.h"
 #include <stdio.h>
@@ -184,6 +185,7 @@ int main(void)
     MX_ADC1_Init();
     MX_USART1_UART_Init();
     alarm_init();
+    motion_init();
 
     printf("BCA182 FreeRTOS Multisensor\r\n");
     printf("System starting...\r\n");
@@ -209,6 +211,7 @@ int main(void)
     xTaskCreate(vDisplayTask,         "DisplayTask", 256, NULL, 1, NULL);
     xTaskCreate(vInputTask,           "InputTask",   256, NULL, 3, NULL);
     xTaskCreate(vAlarmTask,           "AlarmTask",   256, NULL, 2, NULL);
+    xTaskCreate(vMotionTask,          "MotionTask",  256, NULL, 3, NULL);
 
     vTaskStartScheduler();
 

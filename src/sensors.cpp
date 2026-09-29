@@ -38,7 +38,8 @@ void vSensorTask(void *pvParameters) {
         /* 1. Acquire */
         readDHT22(&currentReadings.temperature, &currentReadings.humidity);
         currentReadings.lightLevel = readLDR();
-        currentReadings.motionDetected = false;   /* set by MotionTask in Part IX */
+        currentReadings.motionDetected =
+            (xEventGroupGetBits(xSystemEvents) & EVENT_MOTION) != 0;
 
         /* 2. Publish to both consumer queues (see rtos_objects.h for why
          * two queues implement the diagram's single fan-out arrow).
