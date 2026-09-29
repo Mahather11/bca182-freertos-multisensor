@@ -56,7 +56,7 @@ void vAlarmTask(void *pvParameters)
     SensorData reading;
 
     for (;;) {
-        if (xQueueReceive(xQueueSensorToAlarm, &reading, portMAX_DELAY) == pdPASS) {
+        if (xQueueReceive(xQueueSensorToAlarm, &reading, pdMS_TO_TICKS(500)) == pdPASS) {
             AlarmState newState = evaluateTemperature(reading.temperature);
             if (newState != state) {
                 state = newState;
@@ -68,6 +68,11 @@ void vAlarmTask(void *pvParameters)
             if (shouldEnable != buzzerEnabled) {
                 buzzerEnabled = shouldEnable;
                 buzzer_set(buzzerEnabled);
+                if (buzzerEnabled) {
+                    xEventGroupSetBits(xSystemEvents, EVENT_ALARM);
+                } else {
+                    xEventGroupClearBits(xSystemEvents, EVENT_ALARM);
+                }
                 printf("ALARM: buzzer %s\r\n", buzzerEnabled ? "on" : "off");
             }
         }
