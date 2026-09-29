@@ -24,6 +24,7 @@ void vDisplayTask(void *pvParameters)
     SensorData reading = {0};
     bool haveReading = false;
     DisplayMode mode = DisplayMode::TEMPERATURE;
+    bool wasActive = true;
     char line[21];
 
     for (;;) {
@@ -37,6 +38,17 @@ void vDisplayTask(void *pvParameters)
         if (xQueueReceive(xQueueSensorToDisplay, &reading, pdMS_TO_TICKS(2500)) == pdPASS) {
             haveReading = true;
         }
+
+        bool active = (xEventGroupGetBits(xSystemEvents) & EVENT_ACTIVE) != 0;
+        if (!active) {
+            if (wasActive) {
+                SSD1306_Clear();
+                SSD1306_UpdateScreen();
+                wasActive = false;
+            }
+            continue;
+        }
+        wasActive = true;
 
         SSD1306_Clear();
 

@@ -7,6 +7,7 @@
 #include "input.h"
 #include "alarm.h"
 #include "motion.h"
+#include "system_state.h"
 #include "ssd1306.h"
 #include "wokwi_i2c.h"
 #include <stdio.h>
@@ -212,6 +213,7 @@ int main(void)
     xTaskCreate(vInputTask,           "InputTask",   256, NULL, 3, NULL);
     xTaskCreate(vAlarmTask,           "AlarmTask",   256, NULL, 2, NULL);
     xTaskCreate(vMotionTask,          "MotionTask",  256, NULL, 3, NULL);
+    xTaskCreate(vStateTask,           "StateTask",   256, NULL, 2, NULL);
 
     vTaskStartScheduler();
 

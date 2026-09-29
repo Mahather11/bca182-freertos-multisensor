@@ -41,7 +41,7 @@ void vInputTask(void *pvParameters)
         int8_t step = encoderStep(previousClockHigh, currentClockHigh, currentDataHigh);
         previousClockHigh = currentClockHigh;
 
-        if (step != 0) {
+        if (step != 0 && (xEventGroupGetBits(xSystemEvents) & EVENT_ACTIVE) != 0) {
             mode = step > 0 ? nextDisplayMode(mode) : previousDisplayMode(mode);
             xQueueSend(xQueueInputToDisplay, &mode, 0);
         }

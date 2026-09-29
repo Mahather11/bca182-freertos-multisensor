@@ -63,12 +63,21 @@ void vAlarmTask(void *pvParameters)
                 printf("ALARM: temperature %s\r\n", alarmStateName(state));
             }
 
-            bool shouldEnable = state != AlarmState::NORMAL;
+            bool active = (xEventGroupGetBits(xSystemEvents) & EVENT_ACTIVE) != 0;
+            bool shouldEnable = active && state != AlarmState::NORMAL;
             if (shouldEnable != buzzerEnabled) {
                 buzzerEnabled = shouldEnable;
                 buzzer_set(buzzerEnabled);
                 printf("ALARM: buzzer %s\r\n", buzzerEnabled ? "on" : "off");
             }
+        }
+
+        bool active = (xEventGroupGetBits(xSystemEvents) & EVENT_ACTIVE) != 0;
+        if (!active && buzzerEnabled) {
+            buzzerEnabled = false;
+            buzzer_set(false);
+            xEventGroupClearBits(xSystemEvents, EVENT_ALARM);
+            printf("ALARM: buzzer off\r\n");
         }
     }
 }

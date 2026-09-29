@@ -35,6 +35,11 @@ void vSensorTask(void *pvParameters) {
     const TickType_t xFrequency = pdMS_TO_TICKS(2000); // 2000 ms period
 
     for (;;) {
+        if ((xEventGroupGetBits(xSystemEvents) & EVENT_ACTIVE) == 0) {
+            vTaskDelayUntil(&xLastWakeTime, xFrequency);
+            continue;
+        }
+
         /* 1. Acquire */
         readDHT22(&currentReadings.temperature, &currentReadings.humidity);
         currentReadings.lightLevel = readLDR();
