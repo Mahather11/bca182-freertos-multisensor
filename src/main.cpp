@@ -196,11 +196,12 @@ int main(void)
     MX_GPIO_Init();
     MX_ADC1_Init();
     MX_USART1_UART_Init();
-    alarm_init();
     motion_init();
 
     printf("BCA182 FreeRTOS Multisensor\r\n");
     printf("System starting...\r\n");
+
+    alarm_init();
 
     /* Bare-metal I2C1 (see wokwi_i2c.h for why HAL_I2C_Init is bypassed). */
     BareI2C1_Init();
