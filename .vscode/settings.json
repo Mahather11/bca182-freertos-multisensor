@@ -1,3 +1,4 @@
 {
-    "liveServer.settings.multiRootWorkspaceName": "bca182-freertos-multisensor"
+    "liveServer.settings.multiRootWorkspaceName": "bca182-freertos-multisensor",
+    "cmake.sourceDirectory": "E:/Documents/PlatformIO/Projects/bca182-freertos-multisensor/test_kernel"
 }

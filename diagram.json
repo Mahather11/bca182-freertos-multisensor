@@ -1,19 +1,52 @@
 {
   "version": 1,
-  "author": "BCA182 Student",
+  "author": "Mahather11",
   "editor": "wokwi",
   "parts": [
     {
       "type": "board-stm32-bluepill",
-      "id": "stm32",
+      "id": "bluepill",
       "top": 0,
       "left": 0,
       "attrs": {}
+    },
+    {
+      "type": "wokwi-dht22",
+      "id": "dht1",
+      "top": -140,
+      "left": 180,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-photoresistor-sensor",
+      "id": "ldr1",
+      "top": 120,
+      "left": 180,
+      "attrs": {}
+    },
+    {
+      "type": "board-ssd1306",
+      "id": "oled1",
+      "top": 280,
+      "left": 180,
+      "attrs": { "i2cAddress": "0x3c" }
     }
   ],
   "connections": [
-    [ "$serialMonitor:TX", "stm32:A10", "", [] ],
-    [ "$serialMonitor:RX", "stm32:A9", "", [] ]
-  ],
-  "dependencies": {}
+    [ "$serialMonitor:TX", "bluepill:A10", "", [] ],
+    [ "$serialMonitor:RX", "bluepill:A9", "", [] ],
+
+    [ "dht1:VCC", "bluepill:3V3.1", "red", [ "v0" ] ],
+    [ "dht1:GND", "bluepill:GND.1", "black", [ "v0" ] ],
+    [ "dht1:SDA", "bluepill:A1", "green", [ "v0" ] ],
+
+    [ "ldr1:VCC", "bluepill:3V3.1", "red", [ "v0" ] ],
+    [ "ldr1:GND", "bluepill:GND.1", "black", [ "v0" ] ],
+    [ "ldr1:AO", "bluepill:A0", "orange", [ "v0" ] ],
+
+    [ "oled1:GND", "bluepill:GND.1", "black", [ "v0" ] ],
+    [ "oled1:VCC", "bluepill:3V3.1", "red", [ "v0" ] ],
+    [ "oled1:SCL", "bluepill:B6", "clock", [ "v0" ] ],
+    [ "oled1:SDA", "bluepill:B7", "green", [ "v0" ] ]
+  ]
 }
