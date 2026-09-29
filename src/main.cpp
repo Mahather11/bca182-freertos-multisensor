@@ -33,7 +33,8 @@ extern "C" int _write(int fd, char *ptr, int len)
         xSemaphoreTake(serialMutex, portMAX_DELAY);
     }
 
-    HAL_UART_Transmit(&huart1, (uint8_t *)ptr, (uint16_t)len, HAL_MAX_DELAY);
+    HAL_UART_Transmit(&huart1, reinterpret_cast<uint8_t *>(ptr),
+                      static_cast<uint16_t>(len), HAL_MAX_DELAY);
 
     if (schedulerRunning && serialMutex != NULL) {
         xSemaphoreGive(serialMutex);

@@ -5,26 +5,6 @@
 #define ENCODER_CLK_PIN GPIO_PIN_3
 #define ENCODER_DT_PIN GPIO_PIN_4
 
-static DisplayMode wrapMode(int mode)
-{
-    if (mode < 0) {
-        mode = 3;
-    } else if (mode > 3) {
-        mode = 0;
-    }
-    return static_cast<DisplayMode>(mode);
-}
-
-DisplayMode nextDisplayMode(DisplayMode mode)
-{
-    return wrapMode(static_cast<int>(mode) + 1);
-}
-
-DisplayMode previousDisplayMode(DisplayMode mode)
-{
-    return wrapMode(static_cast<int>(mode) - 1);
-}
-
 void vInputTask(void *pvParameters)
 {
     (void)pvParameters;

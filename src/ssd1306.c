@@ -88,7 +88,7 @@ static const uint8_t font5x7[][5] = {
 
 static void SSD1306_WriteCommand(uint8_t cmd)
 {
-    uint8_t buf[2] = { 0x00, cmd };   /* control byte 0x00 = command follows */
+    const uint8_t buf[2] = { 0x00, cmd };   /* control byte 0x00 = command follows */
     if (BareI2C1_Write(SSD1306_I2C_ADDR, buf, 2, 100) != HAL_OK) {
         g_ssd1306_i2c_errors++;
     }
