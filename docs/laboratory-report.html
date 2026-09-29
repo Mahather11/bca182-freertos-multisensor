@@ -322,8 +322,56 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
 
     <p>The project uses a custom FreeRTOS Cortex-M3 port, chosen for how it behaves in the Wokwi simulator — a simulator-specific engineering decision, since physical hardware testing hasn't been documented. The most significant current functional limitation is the unimplemented DHT22 protocol, which blocks real temperature/humidity updates and any meaningful simulated temperature alarm changes.</p>
 
-    <!-- ==================== 8. CONCLUSION ==================== -->
-    <h2>8. Conclusion</h2>
+    <!-- ==================== 8. FINAL SUBMISSION CHECKLIST ==================== -->
+    <h2>8. Final Submission Checklist</h2>
+
+    <p>This checklist applies Part XXV of the laboratory guide to the current repository. Complete means that the implementation or documentation is present and supported by recorded evidence; pending means that the item still requires an observed result or publication step.</p>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Requirement</th>
+            <th>Evidence in this project</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Build</td><td>pio run succeeds</td><td>Recorded firmware build passes for bluepill_f103c8</td><td>Complete</td></tr>
+          <tr><td>FreeRTOS</td><td>At least five meaningful tasks</td><td>Six application tasks are created and perform separate responsibilities</td><td>Complete</td></tr>
+          <tr><td>FreeRTOS</td><td>Explicit priorities</td><td>Priorities are assigned in main.cpp and justified in the report</td><td>Complete</td></tr>
+          <tr><td>FreeRTOS</td><td>Queue</td><td>Sensor, alarm, and display-mode queues carry application data</td><td>Complete</td></tr>
+          <tr><td>FreeRTOS</td><td>Mutex</td><td>serialMutex protects shared USART1 transmission</td><td>Complete</td></tr>
+          <tr><td>FreeRTOS</td><td>Event group or task notification</td><td>xSystemEvents carries ACTIVE, MOTION, and ALARM bits</td><td>Complete</td></tr>
+          <tr><td>FreeRTOS</td><td>vTaskDelayUntil() used appropriately</td><td>SensorTask, InputTask, and MotionTask use periodic blocking delays</td><td>Complete</td></tr>
+          <tr><td>FreeRTOS</td><td>ACTIVE/INACTIVE state machine</td><td>StateTask applies the 15-second timeout and motion reactivation</td><td>Implemented; runtime pending</td></tr>
+          <tr><td>Simulation</td><td>DHT22, LDR, PIR, rotary encoder, OLED, and buzzer</td><td>All required parts are present in diagram.json; DHT22 firmware acquisition remains placeholder</td><td>Partial</td></tr>
+          <tr><td>Simulation</td><td>Wokwi simulation operational</td><td>Build and recorded OLED/serial evidence exist; complete interaction record is pending</td><td>Partial</td></tr>
+          <tr><td>Testing</td><td>At least 13 meaningful unit tests</td><td>13 native tests cover alarm, navigation, and state decisions</td><td>Complete</td></tr>
+          <tr><td>Testing</td><td>pio test succeeds</td><td>Recorded native test run passes all 13 tests</td><td>Complete</td></tr>
+          <tr><td>Testing</td><td>Functional verification table completed</td><td>FT-01 through FT-10 are documented, but observations remain pending</td><td>Pending</td></tr>
+          <tr><td>Testing</td><td>Fault experiments completed</td><td>Procedures and expected observations are documented in fault-experiments.md; results are not recorded</td><td>Pending</td></tr>
+          <tr><td>Quality</td><td>pio check completed</td><td>Firmware and native cppcheck results are recorded</td><td>Complete</td></tr>
+          <tr><td>Quality</td><td>Findings analyzed and significant warnings addressed</td><td>High/medium findings are zero; remaining low vendor/API findings are explained</td><td>Complete</td></tr>
+          <tr><td>GitHub</td><td>Public repository</td><td>Project is published at github.com/Mahather11/bca182-freertos-multisensor</td><td>Complete</td></tr>
+          <tr><td>GitHub</td><td>Meaningful commit history</td><td>Development milestones are recorded in Git history and development-log.md</td><td>Complete</td></tr>
+          <tr><td>GitHub</td><td>Professional README</td><td>README documents architecture, build, testing, limitations, and verification scope</td><td>Complete</td></tr>
+          <tr><td>GitHub</td><td>Architecture diagrams</td><td>README includes system and state-machine diagrams</td><td>Complete</td></tr>
+          <tr><td>GitHub</td><td>No unnecessary binaries/build artifacts</td><td>Required laboratory report PDF is committed; repository artifact review remains advisable</td><td>Review</td></tr>
+          <tr><td>Report</td><td>Laboratory report included</td><td>docs/laboratory-report.pdf and its HTML source are present</td><td>Complete</td></tr>
+          <tr><td>Report</td><td>FreeRTOS task table</td><td>Section 3 documents tasks, priorities, periods, IPC, and blocked conditions</td><td>Complete</td></tr>
+          <tr><td>Report</td><td>Requirements traceability matrix</td><td>FR-01 through FR-10 are mapped to implementation and evidence</td><td>Complete</td></tr>
+          <tr><td>Report</td><td>Test results and static-analysis discussion</td><td>Sections 5 and 6 record native tests, Wokwi limits, and cppcheck findings</td><td>Complete</td></tr>
+          <tr><td>Report</td><td>Limitations documented</td><td>DHT22 placeholder behavior and pending Wokwi verification are stated</td><td>Complete</td></tr>
+          <tr><td>Portfolio</td><td>Hackster.io article</td><td>No Hackster.io publication is recorded in this repository</td><td>Pending</td></tr>
+          <tr><td>Portfolio</td><td>GitHub link and attribution included</td><td>Repository is public and the project identity is documented</td><td>Partial</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ==================== 9. CONCLUSION ==================== -->
+    <h2>9. Conclusion</h2>
 
     <p>All told, the project delivers a modular, concurrent STM32 FreeRTOS application: six distinct tasks, queues, an event group, a serial mutex, an OLED display path, PIR-based state logic, and independently testable alarm, navigation, and state decisions. The recorded firmware build and 13 native logic tests all pass.</p>
 
