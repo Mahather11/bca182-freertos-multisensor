@@ -277,6 +277,35 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
 
     <p>No Wokwi run has been independently reproduced for this report. The repository checklist in docs/functional-verification.md keeps these runtime tests pending until each stimulus is actually performed and its real result recorded.</p>
 
+    <h3>Requirements traceability</h3>
+
+    <p>The matrix below connects each functional requirement to the code that implements it and to the available verification evidence. A pending Wokwi result is not treated as a pass, and the DHT22 requirements are explicitly marked incomplete because the current firmware still uses placeholder values.</p>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Requirement</th>
+            <th>Implementation</th>
+            <th>Verification evidence</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>FR-01 Temperature measurement</td><td>SensorTask and the DHT22 acquisition path in sensors.cpp</td><td>FT-01 pending; current DHT22 function returns a fixed value</td><td>Incomplete</td></tr>
+          <tr><td>FR-02 Humidity measurement</td><td>SensorTask and the DHT22 acquisition path in sensors.cpp</td><td>FT-02 pending; current DHT22 function returns a fixed value</td><td>Incomplete</td></tr>
+          <tr><td>FR-03 Ambient-light measurement</td><td>SensorTask reads ADC1 channel 0 and scales the LDR to 0-100%</td><td>FT-03 pending; ADC conversion and scaling are implemented</td><td>Implemented; pending Wokwi evidence</td></tr>
+          <tr><td>FR-04 Motion detection</td><td>MotionTask samples the PIR and updates EVENT_MOTION</td><td>FT-04 pending; motion logic is implemented</td><td>Implemented; pending Wokwi evidence</td></tr>
+          <tr><td>FR-05 OLED display</td><td>DisplayTask exclusively owns the SSD1306 and renders one selected mode</td><td>FT-05 pending; display mode behavior is implemented</td><td>Implemented; pending Wokwi evidence</td></tr>
+          <tr><td>FR-06 Rotary encoder navigation</td><td>InputTask decodes CLK/DT and uses nextDisplayMode()/previousDisplayMode()</td><td>Four native navigation tests pass; FT-05 and FT-06 are pending</td><td>Implemented; partially verified</td></tr>
+          <tr><td>FR-07 Temperature alarm</td><td>AlarmTask evaluates temperature and controls TIM1 PWM on the buzzer</td><td>Five native alarm-boundary tests pass; FT-07 is pending</td><td>Implemented; partially verified</td></tr>
+          <tr><td>FR-08 Activity state</td><td>StateTask manages EVENT_ACTIVE with ACTIVE and INACTIVE states</td><td>Four native state tests pass; runtime state observations are pending</td><td>Implemented; partially verified</td></tr>
+          <tr><td>FR-09 Automatic inactivity</td><td>StateTask clears EVENT_ACTIVE after the 15-second timeout</td><td>Native timeout test passes; FT-08 and FT-09 are pending</td><td>Implemented; partially verified</td></tr>
+          <tr><td>FR-10 Automatic reactivation</td><td>MotionTask keeps EVENT_MOTION active while inactive; StateTask restores ACTIVE</td><td>Native reactivation test passes; FT-10 is pending</td><td>Implemented; pending Wokwi evidence</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <!-- ==================== 6. STATIC CODE ANALYSIS ==================== -->
     <h2>6. Static Code Analysis</h2>
 
