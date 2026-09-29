@@ -27,6 +27,8 @@ void vDisplayTask(void *pvParameters)
     bool wasActive = true;
     char line[21];
 
+    printf("DisplayTask started\r\n");
+
     for (;;) {
         DisplayMode queuedMode;
         while (xQueueReceive(xQueueInputToDisplay, &queuedMode, 0) == pdPASS) {

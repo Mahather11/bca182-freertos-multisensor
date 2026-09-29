@@ -34,6 +34,8 @@ void vSensorTask(void *pvParameters) {
     TickType_t xLastWakeTime = xTaskGetTickCount();
     const TickType_t xFrequency = pdMS_TO_TICKS(2000); // 2000 ms period
 
+    printf("SensorTask started\r\n");
+
     for (;;) {
         if ((xEventGroupGetBits(xSystemEvents) & EVENT_ACTIVE) == 0) {
             vTaskDelayUntil(&xLastWakeTime, xFrequency);
@@ -57,6 +59,11 @@ void vSensorTask(void *pvParameters) {
         if (xQueueSend(xQueueSensorToAlarm, &currentReadings, pdMS_TO_TICKS(50)) != pdPASS) {
             printf("WARNING: alarm queue full, reading dropped\r\n");
         }
+
+        printf("Sample: Temperature: %.2f C, Humidity: %.2f %%, Light: %d %%, Motion: %s\r\n",
+               currentReadings.temperature, currentReadings.humidity,
+               currentReadings.lightLevel,
+               currentReadings.motionDetected ? "yes" : "no");
 
         /* Absolute periodic delay to prevent cumulative timing drift */
         vTaskDelayUntil(&xLastWakeTime, xFrequency);

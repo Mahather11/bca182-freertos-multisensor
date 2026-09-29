@@ -36,6 +36,8 @@ void alarm_init(void)
     output.OCIdleState = TIM_OCIDLESTATE_RESET;
     output.OCNIdleState = TIM_OCNIDLESTATE_RESET;
     HAL_TIM_PWM_ConfigChannel(&buzzerTimer, &output, TIM_CHANNEL_1);
+
+    printf("ALARM: TIM1 clock 8000000 Hz, PSC=7, ARR=999 -> 1000 Hz PWM\r\n");
 }
 
 static void buzzer_set(bool enabled)
@@ -54,6 +56,8 @@ void vAlarmTask(void *pvParameters)
     AlarmState state = AlarmState::NORMAL;
     bool buzzerEnabled = false;
     SensorData reading;
+
+    printf("AlarmTask started\r\n");
 
     for (;;) {
         if (xQueueReceive(xQueueSensorToAlarm, &reading, pdMS_TO_TICKS(500)) == pdPASS) {

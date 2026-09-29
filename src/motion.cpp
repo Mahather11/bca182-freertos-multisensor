@@ -22,6 +22,8 @@ void vMotionTask(void *pvParameters)
     bool previousDetected = false;
     TickType_t lastWakeTime = xTaskGetTickCount();
 
+    printf("MotionTask started\r\n");
+
     for (;;) {
         vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(100));
 

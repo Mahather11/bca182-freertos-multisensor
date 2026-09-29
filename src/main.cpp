@@ -217,6 +217,7 @@ int main(void)
     SSD1306_Init();
     printf("SSD1306 I2C errors during init: %lu\r\n",
            (unsigned long)g_ssd1306_i2c_errors);
+    printf("DISPLAY: OLED initialised\r\n");
 
     /* Priorities per Section 38's suggested table. */
     xTaskCreate(vSensorTask,          "SensorTask",  256, NULL, 2, NULL);

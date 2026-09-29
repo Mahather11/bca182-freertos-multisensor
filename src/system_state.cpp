@@ -13,6 +13,8 @@ void vStateTask(void *pvParameters)
     TickType_t lastMotion = xTaskGetTickCount();
     const TickType_t timeout = pdMS_TO_TICKS(kInactivityTimeoutMs);
 
+    printf("StateTask started\r\n");
+
     for (;;) {
         TickType_t elapsed = xTaskGetTickCount() - lastMotion;
         TickType_t waitTime = portMAX_DELAY;
