@@ -160,6 +160,8 @@ The default environment is `bluepill_f103c8`. The latest verified build passes
 with approximately 50.2% of RAM and 50.4% of flash used.
 
 ## Running the Wokwi Simulation
+<img width="1156" height="828" alt="image" src="https://github.com/user-attachments/assets/5a568e31-f1df-491d-8128-3ea99586ac96" />
+
 
 Build first, then run **Wokwi: Start Simulator** from VS Code. Keep the Wokwi
 Terminal open beside the circuit. The firmware reports a boot sequence similar
@@ -184,7 +186,7 @@ Sample: Temperature: 25.40 C, Humidity: 61.20 %, Light: NN %, Motion: no
 The DHT22 values shown above are currently the project’s placeholder values.
 The light percentage depends on the Wokwi photoresistor control.
 
-![Wokwi simulation showing the connected Blue Pill, sensors, OLED, encoder, and buzzer](docs/screenshots/wokwi-simulation.png)
+![Wokwi simulation showing the connected Blue Pill, sensors, OLED, encoder, and buzzer]
 
 ## Unit Testing
 
