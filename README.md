@@ -183,8 +183,8 @@ StateTask started
 Sample: Temperature: 25.40 C, Humidity: 61.20 %, Light: NN %, Motion: no
 ```
 
-The DHT22 values shown above are currently the project’s placeholder values.
-The light percentage depends on the Wokwi photoresistor control.
+The DHT22 values shown above depend on the Wokwi sensor control. The light
+percentage depends on the Wokwi photoresistor control.
 
 ![Wokwi simulation showing the connected Blue Pill, sensors, OLED, encoder, and buzzer]
 
@@ -241,7 +241,8 @@ in Wokwi. The reproducible checklist is in
 
 ## Limitations
 
-- DHT22 acquisition currently uses fixed placeholder values.
+- DHT22 acquisition now uses the PA1 single-wire protocol with checksum validation;
+	runtime Wokwi verification is still pending.
 - Interactive Wokwi FT results still need to be recorded manually in the test
 	plan.
 - The Wokwi circuit is not a substitute for testing on physical STM32 hardware.
@@ -250,7 +251,7 @@ in Wokwi. The reproducible checklist is in
 
 ## Future Improvements
 
-- Implement and verify the real DHT22 single-wire protocol.
+- Run and record the real DHT22 Wokwi verification cases.
 - Record the complete FT-01 through FT-10 Wokwi observations.
 - Add a finished-system screenshot to the repository’s documentation assets.
 - Expand the native tests as new hardware-independent decisions are added.

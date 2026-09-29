@@ -132,7 +132,7 @@
 
     <p>Wokwi translates the physical system into a virtual Blue Pill circuit with a DHT22, a photoresistor module, a PIR sensor, a KY-040 encoder, an SSD1306 OLED, and a buzzer. The LDR output is expressed as a relative percentage rather than calibrated lux.</p>
 
-    <p>One boundary worth stating up front: the DHT22 is wired up in the Wokwi diagram, but the current sensor code doesn't actually communicate with it. It returns fixed placeholder readings of 25.4 °C and 61.2% RH, and this report is careful to distinguish those placeholders from real sensor acquisition.</p>
+    <p>One boundary worth stating up front: the DHT22 is wired up in the Wokwi diagram and the firmware now communicates with it through a bounded single-wire driver on PA1. The driver rejects invalid frames, and the report distinguishes implemented acquisition from runtime Wokwi verification.</p>
 
     <!-- ==================== 2. SYSTEM ARCHITECTURE AND DESIGN ==================== -->
     <h2>2. System Architecture and Design</h2>
@@ -266,7 +266,7 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
           </tr>
         </thead>
         <tbody>
-          <tr><td>FT-01 / FT-02</td><td>Change DHT22 temperature and humidity; confirm the OLED and terminal update</td><td>Not verified against current source; DHT22 values are constants</td></tr>
+          <tr><td>FT-01 / FT-02</td><td>Change DHT22 temperature and humidity; confirm the OLED and terminal update</td><td>Not verified in the current Wokwi run; the PA1 DHT22 driver is implemented with checksum validation</td></tr>
           <tr><td>FT-03</td><td>Move the LDR from dark to bright and confirm percentage direction</td><td>Screenshot shows 15%; dark/bright comparison not recorded</td></tr>
           <tr><td>FT-04 to FT-06</td><td>Trigger PIR and navigate OLED pages in both directions</td><td>Not recorded as a complete test sequence</td></tr>
           <tr><td>FT-07</td><td>Exercise both alarm limits and normal return</td><td>Logic boundaries covered in unit tests; interactive buzzer verification pending</td></tr>
@@ -279,7 +279,7 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
 
     <h3>Requirements traceability</h3>
 
-    <p>The matrix below connects each functional requirement to the code that implements it and to the available verification evidence. A pending Wokwi result is not treated as a pass, and the DHT22 requirements are explicitly marked incomplete because the current firmware still uses placeholder values.</p>
+    <p>The matrix below connects each functional requirement to the code that implements it and to the available verification evidence. A pending Wokwi result is not treated as a pass, so implementation status and runtime evidence are shown separately.</p>
 
     <div class="table-wrapper">
       <table>
@@ -292,8 +292,8 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
           </tr>
         </thead>
         <tbody>
-          <tr><td>FR-01 Temperature measurement</td><td>SensorTask and the DHT22 acquisition path in sensors.cpp</td><td>FT-01 pending; current DHT22 function returns a fixed value</td><td>Incomplete</td></tr>
-          <tr><td>FR-02 Humidity measurement</td><td>SensorTask and the DHT22 acquisition path in sensors.cpp</td><td>FT-02 pending; current DHT22 function returns a fixed value</td><td>Incomplete</td></tr>
+          <tr><td>FR-01 Temperature measurement</td><td>SensorTask and the validated DHT22 acquisition driver on PA1</td><td>FT-01 pending; firmware build passes and invalid frames are rejected</td><td>Implemented; pending Wokwi evidence</td></tr>
+          <tr><td>FR-02 Humidity measurement</td><td>SensorTask and the validated DHT22 acquisition driver on PA1</td><td>FT-02 pending; firmware build passes and invalid frames are rejected</td><td>Implemented; pending Wokwi evidence</td></tr>
           <tr><td>FR-03 Ambient-light measurement</td><td>SensorTask reads ADC1 channel 0 and scales the LDR to 0-100%</td><td>FT-03 pending; ADC conversion and scaling are implemented</td><td>Implemented; pending Wokwi evidence</td></tr>
           <tr><td>FR-04 Motion detection</td><td>MotionTask samples the PIR and updates EVENT_MOTION</td><td>FT-04 pending; motion logic is implemented</td><td>Implemented; pending Wokwi evidence</td></tr>
           <tr><td>FR-05 OLED display</td><td>DisplayTask exclusively owns the SSD1306 and renders one selected mode</td><td>FT-05 pending; display mode behavior is implemented</td><td>Implemented; pending Wokwi evidence</td></tr>
@@ -320,7 +320,7 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
 
     <p>One consequence of the design: the display task waits up to 2.5 seconds on its sensor queue before checking system activity and redrawing, so a mode change or an inactive transition may not show up immediately. InputTask keeps polling while inactive but discards mode changes, and the PA5 encoder switch isn't consumed. These are known limitations, not verified feature claims.</p>
 
-    <p>The project uses a custom FreeRTOS Cortex-M3 port, chosen for how it behaves in the Wokwi simulator — a simulator-specific engineering decision, since physical hardware testing hasn't been documented. The most significant current functional limitation is the unimplemented DHT22 protocol, which blocks real temperature/humidity updates and any meaningful simulated temperature alarm changes.</p>
+    <p>The project uses a custom FreeRTOS Cortex-M3 port, chosen for how it behaves in the Wokwi simulator — a simulator-specific engineering decision, since physical hardware testing hasn't been documented. The DHT22 protocol is now implemented with bounded timing and checksum validation; its temperature, humidity, and alarm behavior still require a recorded Wokwi run.</p>
 
     <!-- ==================== 8. FINAL SUBMISSION CHECKLIST ==================== -->
     <h2>8. Final Submission Checklist</h2>
@@ -346,7 +346,7 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
           <tr><td>FreeRTOS</td><td>Event group or task notification</td><td>xSystemEvents carries ACTIVE, MOTION, and ALARM bits</td><td>Complete</td></tr>
           <tr><td>FreeRTOS</td><td>vTaskDelayUntil() used appropriately</td><td>SensorTask, InputTask, and MotionTask use periodic blocking delays</td><td>Complete</td></tr>
           <tr><td>FreeRTOS</td><td>ACTIVE/INACTIVE state machine</td><td>StateTask applies the 15-second timeout and motion reactivation</td><td>Implemented; runtime pending</td></tr>
-          <tr><td>Simulation</td><td>DHT22, LDR, PIR, rotary encoder, OLED, and buzzer</td><td>All required parts are present in diagram.json; DHT22 firmware acquisition remains placeholder</td><td>Partial</td></tr>
+          <tr><td>Simulation</td><td>DHT22, LDR, PIR, rotary encoder, OLED, and buzzer</td><td>All required parts are present in diagram.json; DHT22 acquisition is implemented on PA1</td><td>Implemented; runtime pending</td></tr>
           <tr><td>Simulation</td><td>Wokwi simulation operational</td><td>Build and recorded OLED/serial evidence exist; complete interaction record is pending</td><td>Partial</td></tr>
           <tr><td>Testing</td><td>At least 13 meaningful unit tests</td><td>13 native tests cover alarm, navigation, and state decisions</td><td>Complete</td></tr>
           <tr><td>Testing</td><td>pio test succeeds</td><td>Recorded native test run passes all 13 tests</td><td>Complete</td></tr>
@@ -363,7 +363,7 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
           <tr><td>Report</td><td>FreeRTOS task table</td><td>Section 3 documents tasks, priorities, periods, IPC, and blocked conditions</td><td>Complete</td></tr>
           <tr><td>Report</td><td>Requirements traceability matrix</td><td>FR-01 through FR-10 are mapped to implementation and evidence</td><td>Complete</td></tr>
           <tr><td>Report</td><td>Test results and static-analysis discussion</td><td>Sections 5 and 6 record native tests, Wokwi limits, and cppcheck findings</td><td>Complete</td></tr>
-          <tr><td>Report</td><td>Limitations documented</td><td>DHT22 placeholder behavior and pending Wokwi verification are stated</td><td>Complete</td></tr>
+          <tr><td>Report</td><td>Limitations documented</td><td>Pending Wokwi verification and unrecorded fault experiments are stated</td><td>Complete</td></tr>
           <tr><td>Portfolio</td><td>Hackster.io article</td><td>No Hackster.io publication is recorded in this repository</td><td>Pending</td></tr>
           <tr><td>Portfolio</td><td>GitHub link and attribution included</td><td>Repository is public and the project identity is documented</td><td>Partial</td></tr>
         </tbody>
@@ -375,7 +375,7 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
 
     <p>All told, the project delivers a modular, concurrent STM32 FreeRTOS application: six distinct tasks, queues, an event group, a serial mutex, an OLED display path, PIR-based state logic, and independently testable alarm, navigation, and state decisions. The recorded firmware build and 13 native logic tests all pass.</p>
 
-    <p>That said, it isn't yet a complete functional demonstration of every lab requirement. The DHT22 driver is still a placeholder, and the full FT-01 through FT-10 Wokwi verification record remains incomplete. The next engineering steps are to implement real DHT22 acquisition, sort out the screenshot/source humidity discrepancy, and record each interactive Wokwi test against the current firmware.</p>
+    <p>That said, it isn't yet a complete functional demonstration of every lab requirement. The DHT22 driver is implemented, but the full FT-01 through FT-10 Wokwi verification record and the fault-experiment observations remain incomplete. The next engineering steps are to run the simulator tests, record each observed result against the current firmware, and sort out the screenshot/source humidity discrepancy.</p>
 
   </main>
 </body>

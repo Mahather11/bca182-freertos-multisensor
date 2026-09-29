@@ -3,6 +3,7 @@
 #include "task.h"
 #include "rtos_objects.h"
 #include "sensors.h"
+#include "dht22.h"
 #include "display.h"
 #include "input.h"
 #include "alarm.h"
@@ -196,6 +197,7 @@ int main(void)
     MX_GPIO_Init();
     MX_ADC1_Init();
     MX_USART1_UART_Init();
+    DHT22_Init();
     motion_init();
 
     printf("BCA182 FreeRTOS Multisensor\r\n");

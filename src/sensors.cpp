@@ -1,4 +1,5 @@
 #include "sensors.h"
+#include "dht22.h"
 #include "rtos_objects.h"
 #include "stm32f1xx_hal.h"
 #include <stdio.h>
@@ -19,14 +20,6 @@ static int readLDR(void) {
     return 0;
 }
 
-/* TODO: real DHT22 single-wire protocol on PA1 (dht1:SDA -> bluepill:A1).
- * Placeholder values for now, matching the lab's sample output
- * (Section 20) so the queue pipeline can be verified first. */
-static void readDHT22(float *temp, float *humidity) {
-    *temp = 25.4f;
-    *humidity = 61.2f;
-}
-
 void vSensorTask(void *pvParameters) {
     (void)pvParameters;
 
@@ -42,8 +35,15 @@ void vSensorTask(void *pvParameters) {
             continue;
         }
 
-        /* 1. Acquire */
-        readDHT22(&currentReadings.temperature, &currentReadings.humidity);
+        /* 1. Acquire. Invalid DHT22 frames are not published to consumers. */
+        DHT22Data dht = DHT22_Read();
+        if (!dht.valid) {
+            printf("DHT22: read failed, sample skipped\r\n");
+            vTaskDelayUntil(&xLastWakeTime, xFrequency);
+            continue;
+        }
+        currentReadings.temperature = dht.temperature;
+        currentReadings.humidity = dht.humidity;
         currentReadings.lightLevel = readLDR();
         currentReadings.motionDetected =
             (xEventGroupGetBits(xSystemEvents) & EVENT_MOTION) != 0;
