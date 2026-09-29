@@ -46,7 +46,7 @@
 
     [ "oled1:GND", "bluepill:GND.1", "black", [ "v0" ] ],
     [ "oled1:VCC", "bluepill:3V3.1", "red", [ "v0" ] ],
-    [ "oled1:SCL", "bluepill:B6", "clock", [ "v0" ] ],
+    [ "oled1:SCL", "bluepill:B6", "green", [ "v0" ] ],
     [ "oled1:SDA", "bluepill:B7", "green", [ "v0" ] ]
   ]
 }

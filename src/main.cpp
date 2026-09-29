@@ -3,11 +3,17 @@
 #include "task.h"
 #include "rtos_objects.h"
 #include "sensors.h"
+#include "display.h"
+#include "ssd1306.h"
+#include "wokwi_i2c.h"
 #include <stdio.h>
 
 ADC_HandleTypeDef hadc1;
 UART_HandleTypeDef huart1;
 extern "C" uint32_t g_pfnVectors[];
+
+/* Diagnostic counter defined in ssd1306.c */
+extern "C" uint32_t g_ssd1306_i2c_errors;
 
 static void MX_USART1_UART_Init(void);
 
@@ -133,24 +139,17 @@ extern "C" void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 }
 
 /* ---------------------------------------------------------
- * TEMPORARY: proves the two sensor queues actually carry data.
- * DisplayTask (Part VI) replaces the display-queue consumer below;
- * AlarmTask (Part VIII) replaces the alarm-queue consumer. Delete
- * this whole task once both real consumers exist.
+ * TEMPORARY: proves the alarm-side queue carries data.
+ * AlarmTask (Part VIII) replaces this. Delete once AlarmTask exists.
  * --------------------------------------------------------- */
-static void QueueMonitorTask(void *pvParameters)
+static void AlarmQueueMonitorTask(void *pvParameters)
 {
     (void)pvParameters;
     SensorData reading;
 
     for (;;) {
-        if (xQueueReceive(xQueueSensorToDisplay, &reading, pdMS_TO_TICKS(2500)) == pdPASS) {
-            printf("[display-queue] T=%.2fC H=%.2f%% L=%d%% motion=%d\r\n",
-                   reading.temperature, reading.humidity,
-                   reading.lightLevel, (int)reading.motionDetected);
-        }
-        if (xQueueReceive(xQueueSensorToAlarm, &reading, pdMS_TO_TICKS(2500)) == pdPASS) {
-            printf("[alarm-queue]   T=%.2fC H=%.2f%% L=%d%% motion=%d\r\n",
+        if (xQueueReceive(xQueueSensorToAlarm, &reading, portMAX_DELAY) == pdPASS) {
+            printf("[alarm-queue] T=%.2fC H=%.2f%% L=%d%% motion=%d\r\n",
                    reading.temperature, reading.humidity,
                    reading.lightLevel, (int)reading.motionDetected);
         }
@@ -194,19 +193,29 @@ int main(void)
     MX_ADC1_Init();
     MX_USART1_UART_Init();
 
-    /* FreeRTOS object creation happens before any task that uses them
-     * (Section 41: hardware init -> RTOS objects -> task creation). */
-    initRTOSObjects();
-
     printf("BCA182 FreeRTOS Multisensor\r\n");
     printf("System starting...\r\n");
 
-    /* SensorTask, priority 2 per the lab's task table (Section 38) */
-    xTaskCreate(vSensorTask, "SensorTask", 256, NULL, 2, NULL);
+    /* Bare-metal I2C1 (see wokwi_i2c.h for why HAL_I2C_Init is bypassed). */
+    BareI2C1_Init();
 
-    /* Temporary, priority 1: just proves the queues work. Remove once
-     * DisplayTask/AlarmTask exist. */
-    xTaskCreate(QueueMonitorTask, "QueueMonitor", 256, NULL, 1, NULL);
+    HAL_StatusTypeDef probeStatus = BareI2C1_IsDeviceReady(SSD1306_I2C_ADDR, 100);
+    printf("SSD1306 address probe (0x%02X): %s\r\n",
+           (unsigned)SSD1306_I2C_ADDR,
+           (probeStatus == HAL_OK) ? "ACK (device found)" : "NO RESPONSE");
+
+    /* FreeRTOS object creation before any task that uses them
+     * (Section 41: hardware init -> RTOS objects -> task creation). */
+    initRTOSObjects();
+
+    SSD1306_Init();
+    printf("SSD1306 I2C errors during init: %lu\r\n",
+           (unsigned long)g_ssd1306_i2c_errors);
+
+    /* Priorities per Section 38's suggested table. */
+    xTaskCreate(vSensorTask,          "SensorTask",  256, NULL, 2, NULL);
+    xTaskCreate(vDisplayTask,         "DisplayTask", 256, NULL, 1, NULL);
+    xTaskCreate(AlarmQueueMonitorTask,"AlarmQMon",   256, NULL, 1, NULL); /* temporary */
 
     vTaskStartScheduler();
 
