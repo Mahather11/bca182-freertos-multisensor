@@ -52,6 +52,18 @@ Expected observation:
 Restore the mutex protection afterward. The shared resource is USART1 and its
 HAL handle; the competing users are the task diagnostics and startup logging.
 
+## Observation Record
+
+Do not mark an experiment complete based only on the expected behavior above.
+Run each temporary variant in Wokwi, capture the actual terminal/OLED behavior,
+restore the normal firmware, and record the commit used for the run.
+
+| Experiment | Actual observation | Result | Date / firmware commit |
+| --- | --- | --- | --- |
+| Remove InputTask blocking | Pending Wokwi observation | Pending | Pending |
+| Raise DisplayTask priority | Pending Wokwi observation | Pending | Pending |
+| Remove serial mutex | Pending Wokwi observation | Pending | Pending |
+
 ## Restoration Check
 
 After every experiment, restore the source and run:

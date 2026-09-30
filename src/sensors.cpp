@@ -1,6 +1,7 @@
 #include "sensors.h"
 #include "dht22.h"
 #include "rtos_objects.h"
+#include "sensors_logic.h"
 #include "stm32f1xx_hal.h"
 #include <stdio.h>
 
@@ -9,21 +10,22 @@ extern ADC_HandleTypeDef hadc1;
 /* Reads the LDR via ADC1 channel 0 (PA0) and converts the 12-bit raw
  * value to a documented 0-100% scale. This is a relative light level,
  * not calibrated lux. */
-static int readLDR(void) {
+static bool readLDR(int *lightLevel) {
     HAL_ADC_Start(&hadc1);
     if (HAL_ADC_PollForConversion(&hadc1, 10) == HAL_OK) {
         uint32_t rawADC = HAL_ADC_GetValue(&hadc1);
         HAL_ADC_Stop(&hadc1);
-        return (int)((rawADC / 4095.0f) * 100.0f);
+        *lightLevel = lightPercentFromAdc(static_cast<uint16_t>(rawADC));
+        return true;
     }
     HAL_ADC_Stop(&hadc1);
-    return 0;
+    return false;
 }
 
 void vSensorTask(void *pvParameters) {
     (void)pvParameters;
 
-    SensorData currentReadings;
+    SensorData currentReadings = {0.0f, 0.0f, 0, false};
     TickType_t xLastWakeTime = xTaskGetTickCount();
     const TickType_t xFrequency = pdMS_TO_TICKS(2000); // 2000 ms period
 
@@ -37,14 +39,17 @@ void vSensorTask(void *pvParameters) {
 
         /* 1. Acquire. Invalid DHT22 frames are not published to consumers. */
         DHT22Data dht = DHT22_Read();
-        if (!dht.valid) {
-            printf("DHT22: read failed, sample skipped\r\n");
+        if (dht.status != Dht22Status::OK) {
+            printf("DHT22: read failed (%s), sample skipped\r\n",
+                   dht22StatusName(dht.status));
             vTaskDelayUntil(&xLastWakeTime, xFrequency);
             continue;
         }
         currentReadings.temperature = dht.temperature;
         currentReadings.humidity = dht.humidity;
-        currentReadings.lightLevel = readLDR();
+        if (!readLDR(&currentReadings.lightLevel)) {
+            printf("LDR: ADC conversion failed, previous value retained\r\n");
+        }
         currentReadings.motionDetected =
             (xEventGroupGetBits(xSystemEvents) & EVENT_MOTION) != 0;
 

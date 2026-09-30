@@ -101,6 +101,11 @@ extern "C" void MX_GPIO_Init(void)
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
 
+    GPIO_InitTypeDef ldrPin = {0};
+    ldrPin.Pin = GPIO_PIN_0;
+    ldrPin.Mode = GPIO_MODE_ANALOG;
+    HAL_GPIO_Init(GPIOA, &ldrPin);
+
     GPIO_InitTypeDef encoderPins = {0};
     encoderPins.Pin = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5;
     encoderPins.Mode = GPIO_MODE_INPUT;

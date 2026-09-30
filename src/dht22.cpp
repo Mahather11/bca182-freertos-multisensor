@@ -7,72 +7,68 @@
 namespace {
 
 constexpr uint16_t kDataPin = GPIO_PIN_1;
-constexpr uint32_t kDataTimeoutUs = 120;
-constexpr uint32_t kStartLowUs = 1100;
+constexpr uint32_t kDataPinShift = 4;
+constexpr uint32_t kDataModeMask = 0xFU << kDataPinShift;
+constexpr uint32_t kDataTimeoutUs = 100;
+constexpr uint8_t kDataPortConfiguration = 0x6U;
+
+bool cycleCounterReady = false;
+uint32_t cyclesPerMicrosecond = 8U;
 
 void setOutputMode(void)
 {
-    GPIO_InitTypeDef gpio = {0};
-    gpio.Pin = kDataPin;
-    gpio.Mode = GPIO_MODE_OUTPUT_OD;
-    gpio.Pull = GPIO_PULLUP;
-    gpio.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOA, &gpio);
+    GPIOA->BRR = kDataPin;
+    GPIOA->CRL = (GPIOA->CRL & ~kDataModeMask) |
+                 (kDataPortConfiguration << kDataPinShift);
 }
 
 void setInputMode(void)
 {
-    GPIO_InitTypeDef gpio = {0};
-    gpio.Pin = kDataPin;
-    gpio.Mode = GPIO_MODE_INPUT;
-    gpio.Pull = GPIO_PULLUP;
-    gpio.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOA, &gpio);
+    GPIOA->BSRR = kDataPin;
+    GPIOA->CRL = (GPIOA->CRL & ~kDataModeMask) | (0x8U << kDataPinShift);
 }
 
-void delayMicroseconds(uint32_t microseconds)
-{
-    uint32_t cycles = microseconds * (SystemCoreClock / 1000000U);
-    uint32_t start = DWT->CYCCNT;
-    while ((DWT->CYCCNT - start) < cycles) {
-    }
-}
-
-bool waitForLevel(GPIO_PinState level, uint32_t timeoutUs)
+bool waitForLevel(bool high, uint32_t timeoutCycles)
 {
     uint32_t start = DWT->CYCCNT;
-    uint32_t timeoutCycles = timeoutUs * (SystemCoreClock / 1000000U);
-    while (HAL_GPIO_ReadPin(GPIOA, kDataPin) != level) {
+    for (uint32_t guard = 0; guard < timeoutCycles; ++guard) {
+        bool pinHigh = (GPIOA->IDR & kDataPin) != 0U;
+        if (pinHigh == high) {
+            return true;
+        }
         if ((DWT->CYCCNT - start) >= timeoutCycles) {
             return false;
         }
     }
-    return true;
+    return false;
 }
 
-bool readBit(bool *value)
+bool captureFrame(uint16_t pulseWidths[kDht22Bits], Dht22Status *status,
+                  uint32_t timeoutCycles)
 {
-    if (!waitForLevel(GPIO_PIN_RESET, kDataTimeoutUs) ||
-        !waitForLevel(GPIO_PIN_SET, kDataTimeoutUs)) {
+    setInputMode();
+    if (!waitForLevel(true, timeoutCycles) ||
+        !waitForLevel(false, timeoutCycles) ||
+        !waitForLevel(true, timeoutCycles) ||
+        !waitForLevel(false, timeoutCycles)) {
+        *status = Dht22Status::NO_RESPONSE;
         return false;
     }
 
-    uint32_t highStart = DWT->CYCCNT;
-    if (!waitForLevel(GPIO_PIN_RESET, kDataTimeoutUs)) {
-        return false;
+    for (uint8_t bitIndex = 0; bitIndex < kDht22Bits; ++bitIndex) {
+        if (!waitForLevel(true, timeoutCycles)) {
+            *status = Dht22Status::TIMEOUT;
+            return false;
+        }
+        uint32_t highStart = DWT->CYCCNT;
+        if (!waitForLevel(false, timeoutCycles)) {
+            *status = Dht22Status::TIMEOUT;
+            return false;
+        }
+        pulseWidths[bitIndex] = static_cast<uint16_t>(
+            (DWT->CYCCNT - highStart) / cyclesPerMicrosecond);
     }
-
-    uint32_t highCycles = DWT->CYCCNT - highStart;
-    uint32_t oneThreshold = 40U * (SystemCoreClock / 1000000U);
-    *value = highCycles > oneThreshold;
     return true;
-}
-
-void enableCycleCounter(void)
-{
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-    DWT->CYCCNT = 0;
-    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 }
 
 } // namespace
@@ -80,55 +76,43 @@ void enableCycleCounter(void)
 void DHT22_Init(void)
 {
     __HAL_RCC_GPIOA_CLK_ENABLE();
-    enableCycleCounter();
     setInputMode();
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CYCCNT = 0;
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+    cyclesPerMicrosecond = SystemCoreClock / 1000000U;
+    uint32_t initialCycles = DWT->CYCCNT;
+    for (volatile uint8_t probe = 0; probe < 16; ++probe) {
+    }
+    cycleCounterReady = DWT->CYCCNT != initialCycles && cyclesPerMicrosecond != 0U;
 }
 
 DHT22Data DHT22_Read(void)
 {
-    DHT22Data result = {0.0f, 0.0f, false};
-    uint8_t bytes[5] = {0};
+    DHT22Data result = {0.0f, 0.0f, Dht22Status::NO_TIMER};
+    if (!cycleCounterReady) {
+        return result;
+    }
 
     setOutputMode();
-    HAL_GPIO_WritePin(GPIOA, kDataPin, GPIO_PIN_RESET);
-    delayMicroseconds(kStartLowUs);
-    setInputMode();
+    vTaskDelay(pdMS_TO_TICKS(2));
 
+    uint16_t pulseWidths[kDht22Bits] = {0};
+    Dht22Status status = Dht22Status::OK;
     taskENTER_CRITICAL();
-    bool frameValid = waitForLevel(GPIO_PIN_RESET, kDataTimeoutUs) &&
-                      waitForLevel(GPIO_PIN_SET, kDataTimeoutUs) &&
-                      waitForLevel(GPIO_PIN_RESET, kDataTimeoutUs);
-    if (frameValid) {
-        for (uint8_t bitIndex = 0; bitIndex < 40; ++bitIndex) {
-            bool bitValue = false;
-            if (!readBit(&bitValue)) {
-                frameValid = false;
-                break;
-            }
-            bytes[bitIndex / 8] <<= 1;
-            if (bitValue) {
-                bytes[bitIndex / 8] |= 1U;
-            }
-        }
-    }
+    bool frameCaptured = captureFrame(pulseWidths, &status,
+                                      kDataTimeoutUs * cyclesPerMicrosecond);
     taskEXIT_CRITICAL();
-
-    if (!frameValid) {
+    if (!frameCaptured) {
+        result.status = status;
         return result;
     }
 
-    uint8_t checksum = static_cast<uint8_t>(bytes[0] + bytes[1] + bytes[2] + bytes[3]);
-    if (checksum != bytes[4]) {
-        return result;
+    Dht22Reading reading = {0, 0};
+    result.status = dht22Decode(pulseWidths, &reading);
+    if (result.status == Dht22Status::OK) {
+        result.temperature = reading.temperatureTenths / 10.0f;
+        result.humidity = reading.humidityTenths / 10.0f;
     }
-
-    uint16_t rawHumidity = static_cast<uint16_t>((bytes[0] << 8) | bytes[1]);
-    uint16_t rawTemperature = static_cast<uint16_t>(((bytes[2] & 0x7FU) << 8) | bytes[3]);
-    result.humidity = rawHumidity / 10.0f;
-    result.temperature = rawTemperature / 10.0f;
-    if ((bytes[2] & 0x80U) != 0U) {
-        result.temperature = -result.temperature;
-    }
-    result.valid = true;
     return result;
 }

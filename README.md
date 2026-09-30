@@ -157,7 +157,7 @@ pio run
 ```
 
 The default environment is `bluepill_f103c8`. The latest verified build passes
-with approximately 50.2% of RAM and 50.4% of flash used.
+with approximately 50.2% of RAM and 51.9% of flash used.
 
 ## Running the Wokwi Simulation
 <img width="1156" height="828" alt="image" src="https://github.com/user-attachments/assets/5a568e31-f1df-491d-8128-3ea99586ac96" />
@@ -196,8 +196,9 @@ Run the native tests with:
 pio test -e native
 ```
 
-The test suite covers five alarm boundary cases, four navigation transitions,
-and four ACTIVE/INACTIVE state transitions. The latest run passed all 13 tests.
+The 26 native tests cover alarm boundaries, display navigation and encoder
+edges, DHT22 pulse decoding/checksum/range handling, ADC light scaling, and
+ACTIVE/INACTIVE transitions. The latest run passed all 26 tests.
 
 ## Static Code Analysis
 
@@ -209,9 +210,9 @@ pio check -e native
 ```
 
 The firmware analysis reports no high- or medium-severity findings. The
-remaining low-level findings are casts inside STM32 CMSIS/HAL macros or a
-required HAL callback signature. Native analysis checks only the pure logic
-modules and reports no defects. Details are in
+remaining low-level findings are register-macro casts, the required HAL
+callback signature, and one bounded-timeout diagnostic. Native analysis checks
+the hardware-independent logic modules and reports no defects. Details are in
 [`docs/static-analysis.md`](docs/static-analysis.md).
 
 ## Functional Verification

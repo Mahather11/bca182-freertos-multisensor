@@ -2,11 +2,12 @@
 #define DHT22_H
 
 #include <stdbool.h>
+#include "dht22_logic.h"
 
 struct DHT22Data {
     float temperature;
     float humidity;
-    bool valid;
+    Dht22Status status;
 };
 
 void DHT22_Init(void);

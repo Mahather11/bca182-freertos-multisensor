@@ -242,9 +242,9 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
           </tr>
         </thead>
         <tbody>
-          <tr><td>pio run</td><td>PASS; last recorded build used 50.2% RAM and 50.4% flash</td><td>Firmware compiles and links for bluepill_f103c8</td></tr>
-          <tr><td>pio test -e native</td><td>13 tests passed</td><td>Five alarm, four navigation, and four state-logic cases; not peripheral or task integration tests</td></tr>
-          <tr><td>pio check -e bluepill_f103c8</td><td>PASS; 0 high, 0 medium, 10 low findings</td><td>Remaining low findings are documented in docs/static-analysis.md</td></tr>
+          <tr><td>pio run</td><td>PASS; latest build uses 50.2% RAM and 51.9% flash</td><td>Firmware compiles and links for bluepill_f103c8</td></tr>
+          <tr><td>pio test -e native</td><td>26 tests passed</td><td>Alarm, navigation/encoder, DHT22 decoding, light scaling, and state logic; not peripheral or task integration tests</td></tr>
+          <tr><td>pio check -e bluepill_f103c8</td><td>PASS; 0 high, 0 medium, 20 low findings</td><td>Remaining low findings are documented in docs/static-analysis.md</td></tr>
           <tr><td>pio check -e native</td><td>PASS; no defects reported</td><td>Checks only hardware-independent *_logic.cpp files</td></tr>
         </tbody>
       </table>
@@ -254,7 +254,7 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
 
     <p>The user-supplied Wokwi screenshot shows the OLED on the HUMIDITY page and a live serial terminal with sample lines reading 25.40 °C, 61.25% humidity, 15% light, and no motion. That's useful evidence a simulation was running, but it doesn't establish all of FT-01 through FT-10.</p>
 
-    <p>There's also a discrepancy worth flagging: the current source assigns humidity 61.2f and formats serial output to two decimal places, which should display 61.20%, yet the screenshot shows 61.25%. The screenshot may come from another or earlier firmware state, so it's recorded here as an observed screenshot rather than a verified output of the current checked source.</p>
+    <p>The supplied screenshot shows 61.25% humidity, while the earlier placeholder build reported 61.20%. Because the screenshot predates the current PA1 DHT22 driver and its firmware revision is not recorded, it is evidence of an earlier simulation only, not verification of the current sensor acquisition.</p>
 
     <div class="table-wrapper">
       <table>
@@ -309,7 +309,7 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
     <!-- ==================== 6. STATIC CODE ANALYSIS ==================== -->
     <h2>6. Static Code Analysis</h2>
 
-    <p>I ran PlatformIO's cppcheck for both the firmware and native environments. The firmware environment came back with no high- or medium-severity findings and ten low-severity ones, while the native logic-only check reported no defects. The firmware findings are stylistic, tied to STM32 CMSIS/HAL register macros and the required HAL callback signature — the details and accepted resolutions are recorded in docs/static-analysis.md.</p>
+    <p>I ran PlatformIO's cppcheck for both the firmware and native environments. The firmware environment reported no high- or medium-severity findings and 20 low-severity findings, while the native logic-only check reported no defects. The low findings are documented in docs/static-analysis.md and consist primarily of STM32 register-macro casts plus a bounded-timeout diagnostic.</p>
 
     <p>The native check intentionally skips STM32-only sources such as the custom port, so its clean result applies to the hardware-independent decision logic rather than the complete firmware source set. PlatformIO also emitted some nonfatal toolchain-define extraction warnings during the native check.</p>
 
@@ -348,12 +348,12 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
           <tr><td>FreeRTOS</td><td>ACTIVE/INACTIVE state machine</td><td>StateTask applies the 15-second timeout and motion reactivation</td><td>Implemented; runtime pending</td></tr>
           <tr><td>Simulation</td><td>DHT22, LDR, PIR, rotary encoder, OLED, and buzzer</td><td>All required parts are present in diagram.json; DHT22 acquisition is implemented on PA1</td><td>Implemented; runtime pending</td></tr>
           <tr><td>Simulation</td><td>Wokwi simulation operational</td><td>Build and recorded OLED/serial evidence exist; complete interaction record is pending</td><td>Partial</td></tr>
-          <tr><td>Testing</td><td>At least 13 meaningful unit tests</td><td>13 native tests cover alarm, navigation, and state decisions</td><td>Complete</td></tr>
-          <tr><td>Testing</td><td>pio test succeeds</td><td>Recorded native test run passes all 13 tests</td><td>Complete</td></tr>
+          <tr><td>Testing</td><td>At least 13 meaningful unit tests</td><td>26 native tests cover alarm, navigation/encoder, DHT22 decoding, light scaling, and state decisions</td><td>Complete</td></tr>
+          <tr><td>Testing</td><td>pio test succeeds</td><td>Latest native run passes all 26 tests</td><td>Complete</td></tr>
           <tr><td>Testing</td><td>Functional verification table completed</td><td>FT-01 through FT-10 are documented, but observations remain pending</td><td>Pending</td></tr>
           <tr><td>Testing</td><td>Fault experiments completed</td><td>Procedures and expected observations are documented in fault-experiments.md; results are not recorded</td><td>Pending</td></tr>
           <tr><td>Quality</td><td>pio check completed</td><td>Firmware and native cppcheck results are recorded</td><td>Complete</td></tr>
-          <tr><td>Quality</td><td>Findings analyzed and significant warnings addressed</td><td>High/medium findings are zero; remaining low vendor/API findings are explained</td><td>Complete</td></tr>
+          <tr><td>Quality</td><td>Findings analyzed and significant warnings addressed</td><td>High/medium findings are zero; 20 low findings are interpreted in docs/static-analysis.md</td><td>Complete</td></tr>
           <tr><td>GitHub</td><td>Public repository</td><td>Project is published at github.com/Mahather11/bca182-freertos-multisensor</td><td>Complete</td></tr>
           <tr><td>GitHub</td><td>Meaningful commit history</td><td>Development milestones are recorded in Git history and development-log.md</td><td>Complete</td></tr>
           <tr><td>GitHub</td><td>Professional README</td><td>README documents architecture, build, testing, limitations, and verification scope</td><td>Complete</td></tr>
@@ -373,7 +373,7 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
     <!-- ==================== 9. CONCLUSION ==================== -->
     <h2>9. Conclusion</h2>
 
-    <p>All told, the project delivers a modular, concurrent STM32 FreeRTOS application: six distinct tasks, queues, an event group, a serial mutex, an OLED display path, PIR-based state logic, and independently testable alarm, navigation, and state decisions. The recorded firmware build and 13 native logic tests all pass.</p>
+    <p>All told, the project delivers a modular, concurrent STM32 FreeRTOS application: six distinct tasks, queues, an event group, a serial mutex, an OLED display path, PIR-based state logic, and independently testable alarm, navigation, sensor-decoding, light-scaling, and state decisions. The recorded firmware build and 26 native logic tests pass.</p>
 
     <p>That said, it isn't yet a complete functional demonstration of every lab requirement. The DHT22 driver is implemented, but the full FT-01 through FT-10 Wokwi verification record and the fault-experiment observations remain incomplete. The next engineering steps are to run the simulator tests, record each observed result against the current firmware, and sort out the screenshot/source humidity discrepancy.</p>
 
