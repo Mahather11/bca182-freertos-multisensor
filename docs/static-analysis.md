@@ -30,6 +30,13 @@ casts are vendor/API constraints, while the timeout loop independently has an
 iteration cap and a DWT elapsed-time limit. No high- or medium-severity issue
 was reported.
 
+| File / line | Finding / cause | Resolution |
+| --- | --- | --- |
+| `src/dht22.cpp:33, 39, 63, 69, 80, 81, 82, 84, 87` | Low style C-style pointer casts reported through CMSIS GPIO/DWT register macros | Accepted vendor/register diagnostics; no project cast is being suppressed |
+| `src/dht22.cpp:39` | Low unsigned-bound diagnostic on the timeout check | Retained; the loop has both an iteration bound and DWT elapsed-time bound |
+| `src/main.cpp:41, 53, 54, 55, 56, 57, 66, 67, 198` | Low style casts in FreeRTOS/CMSIS register macros and vector-table setup | Accepted framework/register access patterns |
+| `src/main.cpp:150` | Low constParameterPointer suggestion for `HAL_UART_MspInit` | HAL callback signature is framework-defined and retained |
+
 The native environment checks only `src/*_logic.cpp`. STM32-only sources such
 as `port.c` are excluded because the custom ARM port intentionally emits a
 compile-time error when analyzed as a native host program. Native cppcheck

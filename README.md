@@ -116,6 +116,12 @@ detected. `DisplayTask` is the only task that updates the OLED.
 - `xSystemEvents` contains `EVENT_ACTIVE`, `EVENT_MOTION`, and `EVENT_ALARM`.
 - `serialMutex` protects USART1 while task diagnostics are transmitted.
 
+The mutex is named `serialMutex` in this codebase (not `xSerialMutex`). The
+sensor-to-display and sensor-to-alarm queues each hold five `SensorData` items;
+the mode queue holds four `DisplayMode` items. `MotionTask` sets/clears
+`EVENT_MOTION`, `StateTask` owns `EVENT_ACTIVE`, and `AlarmTask` owns
+`EVENT_ALARM`.
+
 ## State Machine
 
 ```mermaid
@@ -196,9 +202,12 @@ Run the native tests with:
 pio test -e native
 ```
 
-The 26 native tests cover alarm boundaries, display navigation and encoder
-edges, DHT22 pulse decoding/checksum/range handling, ADC light scaling, and
-ACTIVE/INACTIVE transitions. The latest run passed all 26 tests.
+The 26 native tests cover five alarm cases, four navigation cases, three
+encoder-edge cases, five DHT22 decode cases, four light-scaling cases, and
+five state cases. The latest run passed all 26 tests (0 failed).
+The unqualified `pio test` command selects the default STM32 environment and
+fails because PlatformIO has no Unity configuration for `stm32cube`; use
+`pio test -e native` for host tests. Latest native result: 26 passed, 0 failed.
 
 ## Static Code Analysis
 
@@ -215,24 +224,60 @@ callback signature, and one bounded-timeout diagnostic. Native analysis checks
 the hardware-independent logic modules and reports no defects. Details are in
 [`docs/static-analysis.md`](docs/static-analysis.md).
 
+The exact `pio check` command analyzed the default `bluepill_f103c8` environment:
+0 high, 0 medium, 20 low findings. Native cppcheck also passed with no defects.
+
+| File / lines | Cause | Resolution |
+| --- | --- | --- |
+| `src/dht22.cpp`: 33, 39, 63, 69, 80-84, 87 | Casts reported through STM32 GPIO/DWT register macros | Accepted low-severity CMSIS register-access diagnostics |
+| `src/dht22.cpp`: 39 | Unsigned timeout-bound diagnostic | Polling is bounded by both an iteration guard and elapsed DWT cycles |
+| `src/main.cpp`: 41, 53-57, 66-67, 198 | Casts in FreeRTOS/CMSIS register macros and vector-table setup | Required framework/register patterns; retained |
+| `src/main.cpp`: 150 | HAL callback parameter could be const | HAL callback signature is fixed by the framework; retained |
+
 ## Functional Verification
 
-The functional test plan follows FT-01 through FT-10 in the laboratory PDF:
-sensor updates, OLED modes, encoder wraparound, PIR behavior, alarm limits,
-the inactivity timeout, and reactivation. A Wokwi smoke check on the current
-firmware showed live samples at 2-second intervals: 24.00 C, 40.00% humidity,
-76% light, and no motion. With no motion, the system entered INACTIVE after
-15 seconds. This confirms the sensor sampling and inactivity path were running.
-The screenshot below is from an earlier run and shows different sample values.
+This traceability table uses the laboratory PDF's FT numbering and the symbols
+present in this repository.
+
+| Requirement | Implementation | Verification |
+| --- | --- | --- |
+| FR-01 Temperature | `SensorTask` (`src/sensors.cpp`), `DHT22_Read()` and `dht22Decode()` | FT-01; DHT22 decode native tests |
+| FR-02 Humidity | `SensorTask` (`src/sensors.cpp`), `DHT22_Read()` and `dht22Decode()` | FT-02; DHT22 decode native tests |
+| FR-03 Light | `SensorTask` and `lightPercentFromAdc()` (`src/sensors_logic.cpp`) | FT-03; light-scaling native tests |
+| FR-04 Motion | `MotionTask` (`src/motion.cpp`) updates `EVENT_MOTION` | FT-08 |
+| FR-05 OLED | `DisplayTask` (`src/display.cpp`) owns SSD1306 and renders selected measurement | FT-01 to FT-03 |
+| FR-06 Encoder navigation | `InputTask` uses `encoderStep()`, `nextDisplayMode()`, `previousDisplayMode()` | Navigation/encoder native tests; FT-04/FT-05 |
+| FR-07 Temperature alarm | `AlarmTask` (`src/alarm.cpp`) calls `evaluateTemperature()` | Alarm native tests; FT-06/FT-07 |
+| FR-08 Activity state | `StateTask` and `MotionTask` manage ACTIVE/MOTION state | State native tests; FT-08 |
+| FR-09 Automatic inactivity | `StateTask` uses `kInactivityTimeoutMs` (15,000 ms) | State timeout native test; FT-09 |
+| FR-10 Reactivation | Motion event returns `StateTask` to ACTIVE | State reactivation native test; FT-10 |
+
+Wokwi was run on the current firmware. Observed samples appeared every 2 seconds
+with 24.00 C, 40.00% humidity, 76% light, and no motion. After about 15 seconds
+without motion, the terminal printed `STATE: INACTIVE (no motion for 15 s)`.
+This confirms sensor sampling and the inactivity transition, but not every
+stimulus in FT-01 through FT-10. The screenshot below is from an earlier run and
+is not used to claim results for the current firmware.
 
 <img width="1172" height="888" alt="image" src="https://github.com/user-attachments/assets/50eabcc7-6119-48a9-91a3-1b897f1e9093" />
 )
 
-The smoke-check observations above are recorded; remaining individual FT
-stimuli still need their actual Wokwi results recorded. In particular, changing
-the sensor controls, testing both alarm limits, full encoder wraparound, and
-motion reactivation require separate observations. The reproducible checklist
-is in [`docs/functional-verification.md`](docs/functional-verification.md).
+| Test | Observed behavior | Result |
+| --- | --- | --- |
+| FT-01 | Sample displayed 24.00 C; a controlled temperature change was not recorded | Partial |
+| FT-02 | Sample displayed 40.00% RH; a controlled humidity change was not recorded | Partial |
+| FT-03 | Sample displayed 76% light; dark/bright comparison was not recorded | Partial |
+| FT-04 | Clockwise encoder step not recorded | Pending |
+| FT-05 | Counterclockwise encoder step not recorded | Pending |
+| FT-06 | Above-30 C alarm activation not recorded | Pending |
+| FT-07 | Return-to-normal alarm behavior not recorded | Pending |
+| FT-08 | PIR-triggered ACTIVE behavior not recorded | Pending |
+| FT-09 | `STATE: INACTIVE (no motion for 15 s)` appeared after inactivity | PASS (reported Wokwi observation) |
+| FT-10 | PIR wake-up from INACTIVE not recorded | Pending |
+
+The detailed procedure and observation record are in
+[`docs/functional-verification.md`](docs/functional-verification.md). The FT
+items without direct observations are intentionally not marked PASS.
 
 ## Engineering Decisions
 
