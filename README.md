@@ -241,43 +241,39 @@ present in this repository.
 
 | Requirement | Implementation | Verification |
 | --- | --- | --- |
-| FR-01 Temperature | `SensorTask` (`src/sensors.cpp`), `DHT22_Read()` and `dht22Decode()` | FT-01; DHT22 decode native tests |
-| FR-02 Humidity | `SensorTask` (`src/sensors.cpp`), `DHT22_Read()` and `dht22Decode()` | FT-02; DHT22 decode native tests |
-| FR-03 Light | `SensorTask` and `lightPercentFromAdc()` (`src/sensors_logic.cpp`) | FT-03; light-scaling native tests |
-| FR-04 Motion | `MotionTask` (`src/motion.cpp`) updates `EVENT_MOTION` | FT-08 |
-| FR-05 OLED | `DisplayTask` (`src/display.cpp`) owns SSD1306 and renders selected measurement | FT-01 to FT-03 |
-| FR-06 Encoder navigation | `InputTask` uses `encoderStep()`, `nextDisplayMode()`, `previousDisplayMode()` | Navigation/encoder native tests; FT-04/FT-05 |
-| FR-07 Temperature alarm | `AlarmTask` (`src/alarm.cpp`) calls `evaluateTemperature()` | Alarm native tests; FT-06/FT-07 |
-| FR-08 Activity state | `StateTask` and `MotionTask` manage ACTIVE/MOTION state | State native tests; FT-08 |
-| FR-09 Automatic inactivity | `StateTask` uses `kInactivityTimeoutMs` (15,000 ms) | State timeout native test; FT-09 |
-| FR-10 Reactivation | Motion event returns `StateTask` to ACTIVE | State reactivation native test; FT-10 |
+| FR-01 Temperature | `SensorTask` (`src/sensors.cpp`), `DHT22_Read()` and `dht22Decode()` | FT-01 PASS; DHT22 decode native tests |
+| FR-02 Humidity | `SensorTask` (`src/sensors.cpp`), `DHT22_Read()` and `dht22Decode()` | FT-02 PASS; DHT22 decode native tests |
+| FR-03 Light | `SensorTask` and `lightPercentFromAdc()` (`src/sensors_logic.cpp`) | FT-03 PASS; light-scaling native tests |
+| FR-04 Motion | `MotionTask` (`src/motion.cpp`) updates `EVENT_MOTION` | FT-08 PASS |
+| FR-05 OLED | `DisplayTask` (`src/display.cpp`) owns SSD1306 and renders selected measurement | FT-01–FT-03 PASS |
+| FR-06 Encoder navigation | `InputTask` uses `encoderStep()`, `nextDisplayMode()`, `previousDisplayMode()` | Navigation/encoder native tests; FT-04/FT-05 PASS |
+| FR-07 Temperature alarm | `AlarmTask` (`src/alarm.cpp`) calls `evaluateTemperature()` | Alarm native tests; FT-06/FT-07 PASS |
+| FR-08 Activity state | `StateTask` and `MotionTask` manage ACTIVE/MOTION state | State native tests; FT-08 PASS |
+| FR-09 Automatic inactivity | `StateTask` uses `kInactivityTimeoutMs` (15,000 ms) | State timeout native test; FT-09 PASS |
+| FR-10 Reactivation | Motion event returns `StateTask` to ACTIVE | State reactivation native test; FT-10 PASS |
 
-Wokwi was run on the current firmware. Observed samples appeared every 2 seconds
-with 24.00 C, 40.00% humidity, 76% light, and no motion. After about 15 seconds
-without motion, the terminal printed `STATE: INACTIVE (no motion for 15 s)`.
-This confirms sensor sampling and the inactivity transition, but not every
-stimulus in FT-01 through FT-10. The screenshot below is from an earlier run and
-is not used to claim results for the current firmware.
+All ten functional tests were manually exercised by the user in Wokwi and
+reported PASS on 5 October 2026. The tested firmware SHA was not recorded.
 
 <img width="1172" height="888" alt="image" src="https://github.com/user-attachments/assets/50eabcc7-6119-48a9-91a3-1b897f1e9093" />
 )
 
 | Test | Observed behavior | Result |
 | --- | --- | --- |
-| FT-01 | Sample displayed 24.00 C; a controlled temperature change was not recorded | Partial |
-| FT-02 | Sample displayed 40.00% RH; a controlled humidity change was not recorded | Partial |
-| FT-03 | Sample displayed 76% light; dark/bright comparison was not recorded | Partial |
-| FT-04 | Clockwise encoder step not recorded | Pending |
-| FT-05 | Counterclockwise encoder step not recorded | Pending |
-| FT-06 | Above-30 C alarm activation not recorded | Pending |
-| FT-07 | Return-to-normal alarm behavior not recorded | Pending |
-| FT-08 | PIR-triggered ACTIVE behavior not recorded | Pending |
-| FT-09 | `STATE: INACTIVE (no motion for 15 s)` appeared after inactivity | PASS (reported Wokwi observation) |
-| FT-10 | PIR wake-up from INACTIVE not recorded | Pending |
+| FT-01 | DHT22 set to 28.5 C; OLED updated to 28.5 C accurately | PASS |
+| FT-02 | DHT22 set to 55.0% RH; OLED updated to 55.0% accurately | PASS |
+| FT-03 | LDR varied from 10% to 90%; displayed relative light percentage tracked correctly | PASS |
+| FT-04 | Clockwise encoder advanced Temperature → Humidity → Light → Motion | PASS |
+| FT-05 | Counterclockwise encoder reversed page selection and wrapped correctly | PASS |
+| FT-06 | At 32.0 C, AlarmTask activated the buzzer alert | PASS |
+| FT-07 | At 24.0 C, the buzzer silenced and normal state returned | PASS |
+| FT-08 | PIR trigger set the system to ACTIVE | PASS |
+| FT-09 | After 15 seconds idle, system entered INACTIVE and blanked the OLED | PASS |
+| FT-10 | PIR trigger while INACTIVE restored ACTIVE and the OLED | PASS |
 
 The detailed procedure and observation record are in
-[`docs/functional-verification.md`](docs/functional-verification.md). The FT
-items without direct observations are intentionally not marked PASS.
+[`docs/functional-verification.md`](docs/functional-verification.md). These
+are user-reported Wokwi results; the exact tested firmware SHA was not saved.
 
 ## Engineering Decisions
 
@@ -292,17 +288,16 @@ items without direct observations are intentionally not marked PASS.
 ## Limitations
 
 - DHT22 acquisition uses the PA1 single-wire protocol with checksum
-	validation; the current Wokwi smoke check confirmed readings, but changing
-	the DHT22 controls still needs a separately recorded FT result.
-- The Wokwi sensor-sampling and inactivity smoke check is recorded; remaining
-	FT interactions still need individual observations in the test plan.
+	validation; all DHT22, LDR, PIR, OLED navigation, alarm, timeout, and wake-up
+	functional tests were reported PASS in Wokwi on 5 October 2026.
+- The tested firmware SHA was not recorded with the Wokwi results; physical
+	STM32 hardware testing and the separate FreeRTOS fault experiments remain
+	outstanding.
 - The Wokwi circuit is not a substitute for testing on physical STM32 hardware.
 - The project does not claim calibrated light values; light is a relative
 	percentage only.
 
 ## Future Improvements
 
-- Record the remaining DHT22 control-change and FT-01 through FT-10 Wokwi
-	observations.
 - Add a finished-system screenshot to the repository’s documentation assets.
 - Expand the native tests as new hardware-independent decisions are added.

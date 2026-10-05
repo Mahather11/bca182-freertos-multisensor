@@ -254,7 +254,7 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
 
     <h3>Wokwi functional verification</h3>
 
-    <p>The current-firmware terminal output showed samples every 2 seconds with 24.00 C, 40.00% humidity, 76% light, and no motion. After approximately 15 seconds without motion it printed <code>STATE: INACTIVE (no motion for 15 s)</code>. This is evidence of live sampling and the inactivity transition. It does not show that the sensor controls were changed or that encoder, alarm, PIR activation, OLED blanking, and wake-up behavior were exercised. The supplied older screenshot has different values and is not evidence for the current firmware revision.</p>
+    <p>The user reports manually running all ten functional tests in Wokwi on 5 October 2026 and observing the expected behavior. The observations below are user-reported; the tested firmware SHA was not recorded. The supplied screenshot is from an earlier run and is not used as evidence for these current test results.</p>
 
     <div class="table-wrapper">
       <table>
@@ -262,23 +262,23 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
           <tr><th>Test</th><th>Laboratory stimulus</th><th>Observed behavior</th><th>Result</th></tr>
         </thead>
         <tbody>
-          <tr><td>FT-01</td><td>Change temperature</td><td>Sample reported 24.00 C; a controlled temperature change was not recorded</td><td>Partial</td></tr>
-          <tr><td>FT-02</td><td>Change humidity</td><td>Sample reported 40.00% RH; a controlled humidity change was not recorded</td><td>Partial</td></tr>
-          <tr><td>FT-03</td><td>Change light input</td><td>Sample reported 76%; a dark/bright comparison was not recorded</td><td>Partial</td></tr>
-          <tr><td>FT-04</td><td>Rotate encoder clockwise</td><td>Not observed in the supplied current-firmware log</td><td>Pending</td></tr>
-          <tr><td>FT-05</td><td>Rotate encoder counterclockwise</td><td>Not observed in the supplied current-firmware log</td><td>Pending</td></tr>
-          <tr><td>FT-06</td><td>Set temperature above 30 C</td><td>Alarm/buzzer response not observed</td><td>Pending</td></tr>
-          <tr><td>FT-07</td><td>Return temperature to normal</td><td>Alarm/buzzer stop behavior not observed</td><td>Pending</td></tr>
-          <tr><td>FT-08</td><td>Trigger PIR while ACTIVE</td><td>Sample showed no motion; a PIR trigger was not recorded</td><td>Pending</td></tr>
-          <tr><td>FT-09</td><td>Allow 15 seconds without motion</td><td>Terminal printed <code>STATE: INACTIVE (no motion for 15 s)</code> after the no-motion interval</td><td>PASS (reported observation; no stopwatch value recorded)</td></tr>
-          <tr><td>FT-10</td><td>Trigger PIR while INACTIVE</td><td>Wake-up, OLED resume, and sampling resume were not observed</td><td>Pending</td></tr>
+          <tr><td>FT-01</td><td>Change temperature</td><td>DHT22 set to 28.5 C; OLED updated to 28.5 C accurately</td><td>PASS</td></tr>
+          <tr><td>FT-02</td><td>Change humidity</td><td>DHT22 set to 55.0% RH; OLED updated to 55.0% accurately</td><td>PASS</td></tr>
+          <tr><td>FT-03</td><td>Change light input</td><td>LDR varied from 10% to 90%; relative percentage displayed correctly</td><td>PASS</td></tr>
+          <tr><td>FT-04</td><td>Rotate encoder clockwise</td><td>Pages advanced Temperature to Humidity to Light to Motion</td><td>PASS</td></tr>
+          <tr><td>FT-05</td><td>Rotate encoder counterclockwise</td><td>Page order reversed with proper wraparound</td><td>PASS</td></tr>
+          <tr><td>FT-06</td><td>Set temperature above 30 C</td><td>At 32.0 C, AlarmTask activated the buzzer alert</td><td>PASS</td></tr>
+          <tr><td>FT-07</td><td>Return temperature to normal</td><td>At 24.0 C, buzzer silenced and normal state restored</td><td>PASS</td></tr>
+          <tr><td>FT-08</td><td>Trigger PIR while ACTIVE</td><td>PIR trigger set the system to ACTIVE</td><td>PASS</td></tr>
+          <tr><td>FT-09</td><td>Allow 15 seconds without motion</td><td>After 15 seconds idle, system entered INACTIVE and blanked the OLED</td><td>PASS</td></tr>
+          <tr><td>FT-10</td><td>Trigger PIR while INACTIVE</td><td>PIR trigger restored ACTIVE and the OLED</td><td>PASS</td></tr>
         </tbody>
       </table>
     </div>
 
     <h3>Requirements traceability</h3>
 
-    <p>This matrix follows the laboratory PDF's FT identifiers. Code implementation and automated tests are distinguished from runtime verification; only the observed FT-09 state transition is marked PASS.</p>
+    <p>This matrix follows the laboratory PDF's FT identifiers. The ten Wokwi results are reported by the user as PASS; native tests verify the hardware-independent logic separately.</p>
 
     <div class="table-wrapper">
       <table>
@@ -291,16 +291,16 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
           </tr>
         </thead>
         <tbody>
-          <tr><td>FR-01 Temperature</td><td>SensorTask; DHT22_Read() / dht22Decode()</td><td>test_dht22_decodes_valid_frame; checksum/range tests</td><td>FT-01 partial: 24.00 C sample; controlled change pending</td></tr>
-          <tr><td>FR-02 Humidity</td><td>SensorTask; DHT22_Read() / dht22Decode()</td><td>test_dht22_decodes_valid_frame; checksum/range tests</td><td>FT-02 partial: 40.00% sample; controlled change pending</td></tr>
-          <tr><td>FR-03 Light</td><td>SensorTask; lightPercentFromAdc() on ADC1 PA0</td><td>Four test_light_adc_* cases</td><td>FT-03 partial: 76% sample; dark/bright comparison pending</td></tr>
-          <tr><td>FR-04 Motion</td><td>MotionTask samples PA2 and sets/clears EVENT_MOTION</td><td>State logic unit tests exercise motion inputs</td><td>FT-08 pending: PIR trigger not recorded</td></tr>
-          <tr><td>FR-05 OLED</td><td>DisplayTask exclusively owns SSD1306 and renders one DisplayMode</td><td>Display logic exercised by navigation decisions; no OLED integration test</td><td>FT-01 to FT-03 display updates not verified on current run</td></tr>
-          <tr><td>FR-06 Encoder navigation</td><td>InputTask; encoderStep(), nextDisplayMode(), previousDisplayMode()</td><td>Four test_navigation_* and three test_encoder_* cases</td><td>FT-04/FT-05 pending: turns not recorded</td></tr>
-          <tr><td>FR-07 Temperature alarm</td><td>AlarmTask; evaluateTemperature(); TIM1 PWM buzzer</td><td>Five test_alarm_* boundary cases</td><td>FT-06/FT-07 pending: buzzer response not recorded</td></tr>
-          <tr><td>FR-08 Activity state</td><td>StateTask/MotionTask; evaluateSystemState()</td><td>Five test_state_* cases</td><td>FT-08 pending: ACTIVE motion behavior not recorded</td></tr>
-          <tr><td>FR-09 Auto inactivity</td><td>StateTask; kInactivityTimeoutMs = 15000</td><td>test_state_active_timeout_becomes_inactive</td><td>FT-09 PASS: INACTIVE message observed after no-motion interval</td></tr>
-          <tr><td>FR-10 Auto reactivation</td><td>MotionTask EVENT_MOTION plus StateTask ACTIVE restore</td><td>test_state_inactive_motion_reactivates; test_state_motion_wins_over_timeout</td><td>FT-10 pending: PIR wake-up not recorded</td></tr>
+          <tr><td>FR-01 Temperature</td><td>SensorTask; DHT22_Read() / dht22Decode()</td><td>test_dht22_decodes_valid_frame; checksum/range tests</td><td>FT-01 PASS: 28.5 C displayed accurately</td></tr>
+          <tr><td>FR-02 Humidity</td><td>SensorTask; DHT22_Read() / dht22Decode()</td><td>test_dht22_decodes_valid_frame; checksum/range tests</td><td>FT-02 PASS: 55.0% RH displayed accurately</td></tr>
+          <tr><td>FR-03 Light</td><td>SensorTask; lightPercentFromAdc() on ADC1 PA0</td><td>Four test_light_adc_* cases</td><td>FT-03 PASS: 10%-90% LDR variation displayed correctly</td></tr>
+          <tr><td>FR-04 Motion</td><td>MotionTask samples PA2 and sets/clears EVENT_MOTION</td><td>State logic unit tests exercise motion inputs</td><td>FT-08 PASS: PIR trigger set ACTIVE</td></tr>
+          <tr><td>FR-05 OLED</td><td>DisplayTask exclusively owns SSD1306 and renders one DisplayMode</td><td>No automated OLED integration test</td><td>FT-01–FT-03 PASS: displayed values updated accurately</td></tr>
+          <tr><td>FR-06 Encoder navigation</td><td>InputTask; encoderStep(), nextDisplayMode(), previousDisplayMode()</td><td>Four test_navigation_* and three test_encoder_* cases</td><td>FT-04/FT-05 PASS: both directions and wraparound</td></tr>
+          <tr><td>FR-07 Temperature alarm</td><td>AlarmTask; evaluateTemperature(); TIM1 PWM buzzer</td><td>Five test_alarm_* boundary cases</td><td>FT-06/FT-07 PASS: 32.0 C alarm; 24.0 C clears</td></tr>
+          <tr><td>FR-08 Activity state</td><td>StateTask/MotionTask; evaluateSystemState()</td><td>Five test_state_* cases</td><td>FT-08 PASS: PIR sets ACTIVE</td></tr>
+          <tr><td>FR-09 Auto inactivity</td><td>StateTask; kInactivityTimeoutMs = 15000</td><td>test_state_active_timeout_becomes_inactive</td><td>FT-09 PASS: INACTIVE after 15 s; OLED blanked</td></tr>
+          <tr><td>FR-10 Auto reactivation</td><td>MotionTask EVENT_MOTION plus StateTask ACTIVE restore</td><td>test_state_inactive_motion_reactivates; test_state_motion_wins_over_timeout</td><td>FT-10 PASS: PIR restores ACTIVE and OLED</td></tr>
         </tbody>
       </table>
     </div>
@@ -358,12 +358,12 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
           <tr><td>FreeRTOS</td><td>Mutex</td><td>serialMutex protects shared USART1 transmission</td><td>Complete</td></tr>
           <tr><td>FreeRTOS</td><td>Event group or task notification</td><td>xSystemEvents carries ACTIVE, MOTION, and ALARM bits</td><td>Complete</td></tr>
           <tr><td>FreeRTOS</td><td>vTaskDelayUntil() used appropriately</td><td>SensorTask, InputTask, and MotionTask use periodic blocking delays</td><td>Complete</td></tr>
-          <tr><td>FreeRTOS</td><td>ACTIVE/INACTIVE state machine</td><td>StateTask applies the 15-second timeout and motion reactivation</td><td>Implemented; runtime pending</td></tr>
-          <tr><td>Simulation</td><td>DHT22, LDR, PIR, rotary encoder, OLED, and buzzer</td><td>All required parts are present in diagram.json; DHT22 acquisition is implemented on PA1</td><td>Implemented; runtime pending</td></tr>
-          <tr><td>Simulation</td><td>Wokwi simulation operational</td><td>Build and recorded OLED/serial evidence exist; complete interaction record is pending</td><td>Partial</td></tr>
+          <tr><td>FreeRTOS</td><td>ACTIVE/INACTIVE state machine</td><td>StateTask applies the 15-second timeout; FT-09 and FT-10 reported PASS</td><td>Complete for reported Wokwi tests</td></tr>
+          <tr><td>Simulation</td><td>DHT22, LDR, PIR, rotary encoder, OLED, and buzzer</td><td>All required parts are present and FT-01 through FT-10 were user-reported PASS in Wokwi</td><td>Complete for reported simulator tests</td></tr>
+          <tr><td>Simulation</td><td>Wokwi simulation operational</td><td>All ten functional test observations are recorded in docs/functional-verification.md</td><td>Complete for FT-01 through FT-10</td></tr>
           <tr><td>Testing</td><td>At least 13 meaningful unit tests</td><td>26 native tests cover alarm, navigation/encoder, DHT22 decoding, light scaling, and state decisions</td><td>Complete</td></tr>
           <tr><td>Testing</td><td>Unit tests pass</td><td><code>pio test -e native</code>: 26/26 pass; plain <code>pio test</code> selects STM32Cube and fails to find Unity configuration</td><td>Partial: native suite passes; default command fails</td></tr>
-          <tr><td>Testing</td><td>Functional verification table completed</td><td>FT-01 through FT-10 are documented, but observations remain pending</td><td>Pending</td></tr>
+          <tr><td>Testing</td><td>Functional verification table completed</td><td>FT-01 through FT-10 have user-reported observations and PASS results; tested firmware SHA was not recorded</td><td>Complete with revision-traceability caveat</td></tr>
           <tr><td>Testing</td><td>Fault experiments completed</td><td>Procedures and expected observations are documented in fault-experiments.md; results are not recorded</td><td>Pending</td></tr>
           <tr><td>Quality</td><td>pio check completed</td><td>Firmware and native cppcheck results are recorded</td><td>Complete</td></tr>
           <tr><td>Quality</td><td>Findings analyzed and significant warnings addressed</td><td>High/medium findings are zero; 20 low findings are interpreted in docs/static-analysis.md</td><td>Complete</td></tr>
@@ -376,7 +376,7 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
           <tr><td>Report</td><td>FreeRTOS task table</td><td>Section 3 documents tasks, priorities, periods, IPC, and blocked conditions</td><td>Complete</td></tr>
           <tr><td>Report</td><td>Requirements traceability matrix</td><td>FR-01 through FR-10 are mapped to implementation and evidence</td><td>Complete</td></tr>
           <tr><td>Report</td><td>Test results and static-analysis discussion</td><td>Sections 5 and 6 record native tests, Wokwi limits, and cppcheck findings</td><td>Complete</td></tr>
-          <tr><td>Report</td><td>Limitations documented</td><td>Pending Wokwi verification and unrecorded fault experiments are stated</td><td>Complete</td></tr>
+          <tr><td>Report</td><td>Limitations documented</td><td>Unrecorded fault experiments and missing tested-firmware SHA are stated</td><td>Complete</td></tr>
           <tr><td>Portfolio</td><td>Hackster.io article</td><td>No Hackster.io publication is recorded in this repository</td><td>Pending</td></tr>
           <tr><td>Portfolio</td><td>GitHub link and attribution included</td><td>Repository is public and the project identity is documented</td><td>Partial</td></tr>
         </tbody>
@@ -388,7 +388,7 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
 
     <p>All told, the project delivers a modular, concurrent STM32 FreeRTOS application: six distinct tasks, queues, an event group, a serial mutex, an OLED display path, PIR-based state logic, and independently testable alarm, navigation, sensor-decoding, light-scaling, and state decisions. The recorded firmware build and 26 native logic tests pass.</p>
 
-    <p>That said, it isn't yet a complete functional demonstration of every lab requirement. The DHT22 driver is implemented, but controlled sensor changes, the remaining FT-01 through FT-10 interactions, and the fault-experiment observations are not fully recorded. The next engineering steps are to run those simulator tests against a recorded firmware revision and capture current-revision screenshots.</p>
+    <p>The user reports that all FT-01 through FT-10 functional checks passed in Wokwi, covering sensor changes, display navigation, alarm activation/clear, PIR activity, inactivity, and reactivation. The firmware SHA tested was not recorded, and the separate FreeRTOS fault experiments remain undocumented as observed results. Future work is to capture revision-linked screenshots and complete those fault experiments.</p>
 
   </main>
 </body>

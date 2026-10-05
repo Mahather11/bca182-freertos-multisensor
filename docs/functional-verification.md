@@ -8,10 +8,9 @@
   KY-040 encoder, and buzzer: PASS
 - Firmware and ELF paths in `wokwi.toml` point to the Blue Pill build: PASS
 
-Run interactive tests with **Wokwi: Start Simulator** in VS Code. This audit
-cannot control the simulator; it records the current-firmware terminal output
-reported by the user. Only behavior directly present in that output is recorded
-below, and the remaining FT stimuli stay partial or pending.
+Run interactive tests with **Wokwi: Start Simulator** in VS Code. The user
+reports completing FT-01 through FT-10 on 5 October 2026. The observations below
+are the supplied results; the exact tested firmware SHA was not recorded.
 
 Before testing, record the firmware revision (`git log -1 --oneline`) and date.
 Keep the simulator terminal and circuit visible. Except when testing inactivity,
@@ -20,23 +19,20 @@ trigger the PIR as needed to keep the system ACTIVE. The DHT22 is sampled every
 
 ## Functional Test Record
 
-IDs below follow the laboratory PDF. FT-01 to FT-03 have sample-value smoke
-observations but no controlled input changes; FT-09 has a reported state
-transition. Other cases remain pending until their specific stimulus is
-observed on this firmware.
+IDs below follow the laboratory PDF and list the user's reported outcomes.
 
 | ID | Requirement / stimulus | Expected result | Actual observation | Result |
 | --- | --- | --- | --- | --- |
-| FT-01 | Change DHT22 temperature | Temperature updates within 2 s | Sample output showed 24.00 C; a controlled change was not recorded | Partial |
-| FT-02 | Change DHT22 humidity | Humidity updates within 2 s | Sample output showed 40.00%; a controlled change was not recorded | Partial |
-| FT-03 | Move LDR from dark to bright | Light remains 0-100%; bright is higher | Sample output showed 76%; dark/bright comparison not recorded | Partial |
-| FT-04 | Rotate encoder clockwise | Next page is selected | Not observed in the supplied current-firmware log | Pending |
-| FT-05 | Rotate encoder counterclockwise | Previous page is selected | Not observed in the supplied current-firmware log | Pending |
-| FT-06 | Set temperature above 30 C | Alarm activates | Not observed in the supplied current-firmware log | Pending |
-| FT-07 | Return temperature to normal | Alarm stops | Not observed in the supplied current-firmware log | Pending |
-| FT-08 | Trigger PIR while ACTIVE | Motion is detected; system remains ACTIVE | Current sample log showed no motion; PIR trigger not recorded | Pending |
-| FT-09 | Leave PIR clear for 15 s | System becomes INACTIVE | Terminal printed `STATE: INACTIVE (no motion for 15 s)` after the no-motion interval | PASS (reported observation; exact stopwatch time not recorded) |
-| FT-10 | Trigger PIR while INACTIVE | System returns ACTIVE and sensing/display resume | Not observed in the supplied current-firmware log | Pending |
+| FT-01 | Change DHT22 temperature | Temperature updates within 2 s | Set temperature to 28.5 C; OLED updated to 28.5 C accurately | PASS |
+| FT-02 | Change DHT22 humidity | Humidity updates within 2 s | Set humidity to 55.0% RH; OLED updated to 55.0% accurately | PASS |
+| FT-03 | Move LDR from dark to bright | Light remains 0-100%; bright is higher | Varied light level from 10% to 90%; relative percentage displayed correctly | PASS |
+| FT-04 | Rotate encoder clockwise | Next page is selected | Pages advanced Temperature -> Humidity -> Light -> Motion | PASS |
+| FT-05 | Rotate encoder counterclockwise | Previous page is selected | Page reversed with proper wraparound | PASS |
+| FT-06 | Set temperature above 30 C | Alarm activates | At 32.0 C, AlarmTask activated buzzer alert | PASS |
+| FT-07 | Return temperature to normal | Alarm stops | At 24.0 C, buzzer silenced and normal state restored | PASS |
+| FT-08 | Trigger PIR while ACTIVE | Motion is detected; system remains ACTIVE | PIR motion set the system to ACTIVE | PASS |
+| FT-09 | Leave PIR clear for 15 s | System becomes INACTIVE | After 15 seconds idle, system entered INACTIVE and blanked OLED | PASS |
+| FT-10 | Trigger PIR while INACTIVE | System returns ACTIVE and sensing/display resume | PIR trigger reactivated ACTIVE and restored OLED | PASS |
 
 ## Manual Procedure
 
@@ -57,8 +53,9 @@ observed on this firmware.
 10. FT-09: leave PIR clear for 15 s and verify the INACTIVE transition.
 11. FT-10: trigger PIR while INACTIVE; verify ACTIVE transition, OLED return,
     resumed sampling, and encoder response.
-12. Replace each partial/pending observation only with actual behavior and
-    mark PASS/FAIL/PARTIAL. Do not mark PASS without observing it.
+12. After any firmware change, rerun the affected cases and record the tested
+   revision, actual behavior, and PASS/FAIL/PARTIAL result. Do not carry results
+   forward to a different firmware revision without retesting.
 
 For every test, preserve the observation text and use the same tested firmware
 revision; results from another repository or an earlier build are not evidence
