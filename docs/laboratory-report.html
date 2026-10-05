@@ -238,8 +238,6 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
           <tr><td>pio run</td><td>PASS; 50.2% RAM and 51.9% flash</td><td>Default bluepill_f103c8 environment builds successfully</td></tr>
           <tr><td>pio test</td><td>ERROR; zero tests executed</td><td>Default STM32Cube environment has no Unity configuration; use the native environment</td></tr>
           <tr><td>pio test -e native</td><td>PASS; 26/26 tests, 0 failed</td><td>5 alarm, 4 navigation, 3 encoder, 5 DHT22 decode, 4 light-scaling, and 5 state cases; no hardware integration tests</td></tr>
-          <tr><td>pio check</td><td>PASS; 0 high, 0 medium, 20 low findings</td><td>Runs cppcheck on default bluepill_f103c8; details and dispositions below</td></tr>
-          <tr><td>pio check -e native</td><td>PASS; no defects found</td><td>Toolchain-define extraction warnings were nonfatal</td></tr>
         </tbody>
       </table>
     </div>
@@ -297,29 +295,8 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
       </table>
     </div>
 
-    <!-- ==================== 6. STATIC CODE ANALYSIS ==================== -->
-    <h2>6. Static Code Analysis</h2>
-
-    <p>I ran PlatformIO's cppcheck for both the firmware and native environments. The firmware environment reported no high- or medium-severity findings and 20 low-severity findings, while the native logic-only check reported no defects. The low findings are documented in docs/static-analysis.md and consist primarily of STM32 register-macro casts plus a bounded-timeout diagnostic.</p>
-
-    <p>The native check intentionally skips STM32-only sources such as the custom port, so its clean result applies to the hardware-independent decision logic rather than the complete firmware source set. PlatformIO also emitted some nonfatal toolchain-define extraction warnings during the native check.</p>
-
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr><th>File / line</th><th>Finding / cause</th><th>Resolution</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>src/dht22.cpp: 33, 39, 63, 69, 80, 81, 82, 84, 87</td><td>Low style C-style pointer casts reported through CMSIS GPIO/DWT register macros</td><td>Accepted vendor/register diagnostics; changing CMSIS register access would require altering framework headers</td></tr>
-          <tr><td>src/dht22.cpp: 39</td><td>Low unsignedLessThanZero diagnostic on the timeout bound</td><td>Timeout remains bounded by an iteration guard and elapsed DWT cycles; diagnostic is a false positive for the unsigned counter</td></tr>
-          <tr><td>src/main.cpp: 41, 53, 54, 55, 56, 57, 66, 67, 198</td><td>Low style C-style pointer casts in FreeRTOS/CMSIS register macros and vector-table setup</td><td>Accepted framework/register access patterns</td></tr>
-          <tr><td>src/main.cpp: 150</td><td>Low constParameterPointer suggestion for HAL_UART_MspInit callback parameter</td><td>Retain the HAL-required callback signature</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- ==================== 7. CONCLUSION ==================== -->
-    <h2>7. Conclusion</h2>
+    <!-- ==================== 6. CONCLUSION ==================== -->
+    <h2>6. Conclusion</h2>
 
     <p>All told, the project delivers a modular, concurrent STM32 FreeRTOS application: six distinct tasks, queues, an event group, a serial mutex, an OLED display path, PIR-based state logic, and independently testable alarm, navigation, sensor-decoding, light-scaling, and state decisions. The recorded firmware build and 26 native logic tests pass.</p>
 
