@@ -219,16 +219,20 @@ the hardware-independent logic modules and reports no defects. Details are in
 
 The functional test plan follows FT-01 through FT-10 in the laboratory PDF:
 sensor updates, OLED modes, encoder wraparound, PIR behavior, alarm limits,
-the inactivity timeout, and reactivation. The supplied Wokwi screenshot shows
-the Humidity page and terminal samples such as 25.40 C, 61.25% humidity, and
-15% light with no motion.
+the inactivity timeout, and reactivation. A Wokwi smoke check on the current
+firmware showed live samples at 2-second intervals: 24.00 C, 40.00% humidity,
+76% light, and no motion. With no motion, the system entered INACTIVE after
+15 seconds. This confirms the sensor sampling and inactivity path were running.
+The screenshot below is from an earlier run and shows different sample values.
 
 <img width="1172" height="888" alt="image" src="https://github.com/user-attachments/assets/50eabcc7-6119-48a9-91a3-1b897f1e9093" />
 )
 
-Runtime observations should be recorded only after performing each interaction
-in Wokwi. The reproducible checklist is in
-[`docs/functional-verification.md`](docs/functional-verification.md).
+The smoke-check observations above are recorded; remaining individual FT
+stimuli still need their actual Wokwi results recorded. In particular, changing
+the sensor controls, testing both alarm limits, full encoder wraparound, and
+motion reactivation require separate observations. The reproducible checklist
+is in [`docs/functional-verification.md`](docs/functional-verification.md).
 
 ## Engineering Decisions
 
@@ -242,17 +246,18 @@ in Wokwi. The reproducible checklist is in
 
 ## Limitations
 
-- DHT22 acquisition now uses the PA1 single-wire protocol with checksum validation;
-	runtime Wokwi verification is still pending.
-- Interactive Wokwi FT results still need to be recorded manually in the test
-	plan.
+- DHT22 acquisition uses the PA1 single-wire protocol with checksum
+	validation; the current Wokwi smoke check confirmed readings, but changing
+	the DHT22 controls still needs a separately recorded FT result.
+- The Wokwi sensor-sampling and inactivity smoke check is recorded; remaining
+	FT interactions still need individual observations in the test plan.
 - The Wokwi circuit is not a substitute for testing on physical STM32 hardware.
 - The project does not claim calibrated light values; light is a relative
 	percentage only.
 
 ## Future Improvements
 
-- Run and record the real DHT22 Wokwi verification cases.
-- Record the complete FT-01 through FT-10 Wokwi observations.
+- Record the remaining DHT22 control-change and FT-01 through FT-10 Wokwi
+	observations.
 - Add a finished-system screenshot to the repository’s documentation assets.
 - Expand the native tests as new hardware-independent decisions are added.
