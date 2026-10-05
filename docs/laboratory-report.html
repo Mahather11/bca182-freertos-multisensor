@@ -7,110 +7,102 @@
   <style>
     * { box-sizing: border-box; }
 
+    @page { size: A4; margin: 18mm; }
+
     body {
       margin: 0;
-      padding: 2rem 1rem;
-      background: #f2f2ef;
+      padding: 0 16px;
+      background: #fff;
       font-family: Georgia, "Times New Roman", serif;
-      color: #222;
-      line-height: 1.7;
+      color: #111;
+      line-height: 1.5;
     }
 
     .report {
-      max-width: 860px;
+      max-width: 900px;
       margin: 0 auto;
-      background: #fff;
-      padding: 3rem 3.5rem;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
     }
 
     header {
       text-align: center;
-      margin-bottom: 2.5rem;
-      padding-bottom: 1.5rem;
-      border-bottom: 3px double #2c3e50;
+      margin-bottom: 24px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #555;
     }
 
     header h1 {
       margin: 0 0 0.3rem;
-      font-size: 1.6rem;
+      font-size: 20pt;
     }
 
     .report-title {
       margin: 0;
-      font-size: 1.15rem;
+      font-size: 13pt;
       font-weight: bold;
     }
 
     .tech-line {
-      margin: 0.8rem 0 0;
-      font-size: 0.85rem;
-      color: #555;
-      font-family: "Courier New", monospace;
+      margin: 8px 0 0;
+      font-size: 9pt;
     }
 
     h2 {
-      font-size: 1.25rem;
-      color: #2c3e50;
-      border-bottom: 2px solid #2c3e50;
-      padding-bottom: 0.25rem;
-      margin-top: 2.5rem;
+      font-size: 15pt;
+      border-bottom: 1px solid #777;
+      padding-bottom: 3px;
+      margin: 24px 0 8px;
     }
 
     h3 {
-      font-size: 1.05rem;
-      color: #34495e;
-      margin-top: 1.8rem;
+      font-size: 11.5pt;
+      margin: 16px 0 6px;
     }
 
-    p { margin: 0.9rem 0; }
+    p { margin: 7px 0 10px; }
 
     .table-wrapper { overflow-x: auto; }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 1.2rem 0;
-      font-size: 0.92rem;
-      font-family: "Segoe UI", Arial, sans-serif;
+      margin: 10px 0 16px;
+      font-size: 9.5pt;
     }
 
     th, td {
-      border: 1px solid #bbb;
-      padding: 0.5rem 0.7rem;
+      border: 1px solid #777;
+      padding: 5px 6px;
       text-align: left;
       vertical-align: top;
     }
 
-    th { background: #2c3e50; color: #fff; }
-
-    tbody tr:nth-child(even) { background: #f5f5f2; }
+    th { background: #f2f2f2; font-weight: bold; }
 
     pre {
-      background: #f4f4f2;
-      border: 1px solid #ddd;
-      border-left: 4px solid #2c3e50;
-      padding: 0.9rem 1rem;
+      background: #fafafa;
+      border: 1px solid #aaa;
+      padding: 8px;
       overflow-x: auto;
-      font-family: "Courier New", monospace;
-      font-size: 0.85rem;
-      line-height: 1.45;
+      font-family: Consolas, monospace;
+      font-size: 9pt;
+      line-height: 1.35;
     }
 
-    ul { margin: 0.9rem 0; padding-left: 1.5rem; }
+    ul { margin: 8px 0; padding-left: 24px; }
 
     .closing {
       font-style: italic;
-      color: #555;
-      border-top: 1px solid #ccc;
-      margin-top: 2.5rem;
-      padding-top: 1rem;
-      font-size: 0.92rem;
+      border-top: 1px solid #aaa;
+      margin-top: 24px;
+      padding-top: 10px;
+      font-size: 9.5pt;
     }
 
     @media print {
-      body { padding: 0; background: #fff; }
-      .report { box-shadow: none; padding: 0; max-width: 100%; }
+      body { padding: 0; }
+      .report { max-width: none; }
+      thead { display: table-header-group; }
+      tr { break-inside: avoid; }
     }
   </style>
 </head>
@@ -254,7 +246,7 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
 
     <h3>Wokwi functional verification</h3>
 
-    <p>The user reports manually running all ten functional tests in Wokwi on 5 October 2026 and observing the expected behavior. The observations below are user-reported; the tested firmware SHA was not recorded. The supplied screenshot is from an earlier run and is not used as evidence for these current test results.</p>
+    <p>I manually ran all ten functional tests in Wokwi on 5 October 2026 and observed the expected behavior. I did not record the tested firmware SHA. The screenshot shown below is from an earlier run and is not evidence for these test results.</p>
 
     <div class="table-wrapper">
       <table>
@@ -278,7 +270,7 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
 
     <h3>Requirements traceability</h3>
 
-    <p>This matrix follows the laboratory PDF's FT identifiers. The ten Wokwi results are reported by the user as PASS; native tests verify the hardware-independent logic separately.</p>
+    <p>This matrix follows the laboratory PDF's FT identifiers. I recorded all ten Wokwi functional tests as PASS; native tests separately verify the hardware-independent logic.</p>
 
     <div class="table-wrapper">
       <table>
@@ -331,7 +323,7 @@ INACTIVE -- motion detected ----------&gt; ACTIVE</pre>
 
     <p>All told, the project delivers a modular, concurrent STM32 FreeRTOS application: six distinct tasks, queues, an event group, a serial mutex, an OLED display path, PIR-based state logic, and independently testable alarm, navigation, sensor-decoding, light-scaling, and state decisions. The recorded firmware build and 26 native logic tests pass.</p>
 
-    <p>The user reports that all FT-01 through FT-10 functional checks passed in Wokwi, covering sensor changes, display navigation, alarm activation/clear, PIR activity, inactivity, and reactivation. The firmware SHA tested was not recorded, and the separate FreeRTOS fault experiments remain undocumented as observed results. Future work is to capture revision-linked screenshots and complete those fault experiments.</p>
+    <p>I completed FT-01 through FT-10 in Wokwi: sensor changes, display navigation, alarm activation and clearing, PIR activity, inactivity, and reactivation all passed. I did not record the tested firmware SHA, and I have not documented observed results for the separate FreeRTOS fault experiments. Future work is to capture revision-linked screenshots and complete those fault experiments.</p>
 
   </main>
 </body>
